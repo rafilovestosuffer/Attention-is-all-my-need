@@ -2,13 +2,13 @@
    Call AttendShell.mount({ chapter: "§3.2", title: "Why √dₖ", progress: 40 })  */
 window.AttendShell = (() => {
   const CHAPTERS = [
-    { id: "§1",   href: "ch1-dot-product.html",  title: "A vector, a dot product" },
-    { id: "§2",   href: "ch2-softmax.html",      title: "From similarity to attention" },
-    { id: "§3.2", href: "ch3-scale.html",        title: "Why we scale by √dₖ" },
-    { id: "§4.3", href: "index.html",            title: "Splitting Q, K, V" },
-    { id: "§4.4", href: "ch4-multihead.html",    title: "Per-head attention" },
-    { id: "§5",   href: "ch5-positional.html",   title: "Positional encodings" },
-    { id: "§6",   href: "ch6-transformer.html",  title: "The full Transformer block" },
+    { id: "§1", href: "ch1-dot-product.html",  title: "A vector, a dot product" },
+    { id: "§2", href: "ch2-softmax.html",      title: "From similarity to attention" },
+    { id: "§3", href: "ch3-scale.html",        title: "Why we scale by √dₖ" },
+    { id: "§4", href: "index.html",            title: "Splitting Q, K, V" },
+    { id: "§5", href: "ch4-multihead.html",    title: "Per-head attention" },
+    { id: "§6", href: "ch5-positional.html",   title: "Positional encodings" },
+    { id: "§7", href: "ch6-transformer.html",  title: "The full Transformer block" },
   ];
 
   const renderSidebar = (activeId) => {

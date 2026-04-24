@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Attend · §4.3 Splitting Q, K, V — a worked example</title>
+  <title>Attend · §4 Splitting Q, K, V — a worked example</title>
   <link rel="icon" href="../../assets/brand/logomark.svg" />
+  <link rel="stylesheet" href="chapter.css" />
   <link rel="stylesheet" href="reader.css" />
+  <script src="shell.js"></script>
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-  <!-- Plain-JS math helpers (no bundler). Exported on window.AttMath. -->
   <script>
-    // Inline-minified version of attention-math.js to avoid CORS/module load.
     window.AttMath = (() => {
       const zeros = (r, c) => Array.from({ length: r }, () => Array(c).fill(0));
       const matmul = (A, B) => {
@@ -49,67 +49,51 @@
   </script>
 </head>
 <body>
-  <div class="app" data-screen-label="Reader · §4.3">
-    <div id="sidebar-root"></div>
-    <main class="reader">
-      <div id="topbar-root"></div>
+<div class="app" data-screen-label="Reader · §4">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader">
+    <div class="topbar" id="topbar"></div>
 
-      <div id="intro-root"></div>
+    <div id="intro-root"></div>
 
-      <div id="playground-root"></div>
+    <div id="playground-root"></div>
 
-      <h2>What just happened</h2>
+    <h2>What just happened</h2>
 
-      <p>
-        Each row of the output is a <strong>convex combination</strong> of
-        the value rows, weighted by how much this query "asked" each key. A
-        row that attends uniformly just averages all values; a row that attends
-        sharply copies a single value. Multi-head attention runs
-        <em class="math">h</em> copies of this in parallel, each with its own
-        learned Q, K, V projections — giving the model <em class="math">h</em>
-        different ways to relate tokens.
-      </p>
+    <p>
+      Each row of the output is a <strong>convex combination</strong> of
+      the value rows, weighted by how much this query "asked" each key. A
+      row that attends uniformly just averages all values; a row that attends
+      sharply copies a single value. Multi-head attention runs
+      <em class="math">h</em> copies of this in parallel, each with its own
+      learned Q, K, V projections — giving the model <em class="math">h</em>
+      different ways to relate tokens.
+    </p>
 
-      <div id="callout-1"></div>
+    <div id="mathblock-1"></div>
 
-      <h3>Try it yourself</h3>
+    <div id="callout-1"></div>
 
-      <p>
-        Reproduce the numbers above with NumPy. The shapes are small enough
-        that you can print every intermediate.
-      </p>
+    <h3>Try it yourself</h3>
 
-      <div id="scratch-1"></div>
+    <p>
+      Reproduce the numbers above with NumPy. The shapes are small enough
+      that you can print every intermediate.
+    </p>
 
-      <p>
-        Next up: we'll stack <em class="math">h = 8</em> heads, each with
-        <em class="math">d<sub>k</sub> = 64</em>, and see how concatenation
-        followed by the output projection <em class="math">W<sup>O</sup></em>
-        gives us back a <code>[n, d_model]</code> tensor — the same shape we
-        started with, now enriched by eight distinct attention views.
-      </p>
+    <div id="scratch-1"></div>
 
-      <div class="footer-nav">
-        <a href="#" class="fn fn--prev">
-          <span class="fn__eyebrow">§4.2</span>
-          <span class="fn__title">← Shapes and splits</span>
-        </a>
-        <a href="#" class="fn fn--next">
-          <span class="fn__eyebrow">§4.4</span>
-          <span class="fn__title">Per-head attention →</span>
-        </a>
-      </div>
-    </main>
-  </div>
+    <p>
+      Next up: we'll stack <em class="math">h = 8</em> heads, each with
+      <em class="math">d<sub>k</sub> = 64</em>, and see how concatenation
+      followed by the output projection <em class="math">W<sup>O</sup></em>
+      gives us back a <code>[n, d_model]</code> tensor — the same shape we
+      started with, now enriched by eight distinct attention views.
+    </p>
 
-  <style>
-    .footer-nav { display: flex; justify-content: space-between; gap: 14px; margin-top: 72px; border-top: 1px solid var(--paper-3); padding-top: 20px; }
-    .fn { flex: 1; padding: 14px 18px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 8px; text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 4px; transition: all 220ms; }
-    .fn:hover { background: #fff; box-shadow: var(--shadow-1); }
-    .fn--next { text-align: right; }
-    .fn__eyebrow { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; }
-    .fn__title { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 18px; }
-  </style>
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
 
   <script type="text/babel" src="components.jsx"></script>
   <script type="text/babel" src="AttentionPlayground.jsx"></script>
@@ -118,7 +102,9 @@
     const { createRoot } = ReactDOM;
     const { useState } = React;
 
-    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    AttendShell.mount({ chapter: "Chapter 4", section: "§4 Splitting Q, K, V", progress: 57, activeId: "§4" });
+
+    const TWEAK_DEFAULTS = {
       "introVariant": "storytelling",
       "showEyebrow": true,
       "showLede": true,
@@ -126,14 +112,14 @@
       "heroSize": 48,
       "ledeItalic": true,
       "accent": "query"
-    }/*EDITMODE-END*/;
+    };
 
     const INTROS = {
       scholarly: {
-        eyebrow: "Chapter 4 · §4.3",
+        eyebrow: "Chapter 4 · §4",
         title: ["Splitting ", "Q", ", ", "K", ", ", "V"],
         lede: "Before we can give each head its own view, we slice the shared Q, K, V tensors along their feature dimension. The math is almost embarrassingly simple — but the shapes are where everyone gets lost.",
-        body: "We start from the d-model-dimensional projections built in §4.2. For a sequence of length n we have three matrices of shape [n, d_model]. Multi-head attention says: split each one into h independent chunks of size dₖ = d_model / h, and run attention on each chunk in parallel."
+        body: "We start from the d-model-dimensional projections built in §3. For a sequence of length n we have three matrices of shape [n, d_model]. Multi-head attention says: split each one into h independent chunks of size dₖ = d_model / h, and run attention on each chunk in parallel."
       },
       inviting: {
         eyebrow: "Chapter 4 · one head at a time",
@@ -142,7 +128,7 @@
         body: "In this section we will walk through a single attention head on six toy tokens, computing every number by hand. Then we will hand the same work to a live playground so you can poke at it until the intuition clicks."
       },
       terse: {
-        eyebrow: "§4.3",
+        eyebrow: "§4",
         title: ["Q, K, V — split and conquer"],
         lede: "Split d-model into h heads of dₖ. Attend. Concatenate. Project.",
         body: "That is the whole algorithm. The rest of this section exists to convince you that each of those four words is necessary, and that none of them hide magic."
@@ -212,14 +198,10 @@
     }
 
     createRoot(document.getElementById('intro-root')).render(<Intro />);
-    createRoot(document.getElementById('sidebar-root')).render(<Sidebar />);
-    createRoot(document.getElementById('topbar-root')).render(
-      <TopBar chapter="Chapter 4" section="§4.3 Splitting Q, K, V" progress={62} />
-    );
     createRoot(document.getElementById('playground-root')).render(<AttentionPlayground />);
 
     createRoot(document.getElementById('mathblock-1')).render(
-      <MathBlock eqn="4.3">
+      <MathBlock eqn="4">
         <span>head<sub>i</sub> = Attention(</span>
         <em className="tok-q">Q</em><em>W</em><sub>i</sub><sup>Q</sup>, {" "}
         <em className="tok-k">K</em><em>W</em><sub>i</sub><sup>K</sup>, {" "}
