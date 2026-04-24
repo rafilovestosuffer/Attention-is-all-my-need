@@ -50,9 +50,9 @@
 </head>
 <body>
 <div class="app" data-screen-label="Reader · §4">
-  <aside class="sidebar" id="sidebar"></aside>
+  <div id="sidebar-root"></div>
   <main class="reader">
-    <div class="topbar" id="topbar"></div>
+    <div id="topbar-root"></div>
 
     <div id="intro-root"></div>
 
@@ -91,18 +91,33 @@
       started with, now enriched by eight distinct attention views.
     </p>
 
-    <nav class="fn-nav" id="footer-nav"></nav>
+    <div class="fn-nav">
+      <a class="fn" href="ch3-scale.html">
+        <span class="eb">← §3</span>
+        <span class="tt">Why we scale by √dₖ</span>
+      </a>
+      <a class="fn next" href="ch4-multihead.html">
+        <span class="eb">§5 →</span>
+        <span class="tt">Per-head attention</span>
+      </a>
+    </div>
   </main>
 </div>
 
+  <style>
+    .fn-nav { display: flex; justify-content: space-between; gap: 14px; margin-top: 72px; border-top: 1px solid var(--paper-3); padding-top: 20px; }
+    .fn { flex: 1; padding: 14px 18px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 8px; text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 4px; transition: all 220ms; }
+    .fn:hover { background: #fff; box-shadow: var(--shadow-1); }
+    .fn.next { text-align: right; }
+    .eb { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; }
+    .tt { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 18px; }
+  </style>
   <script type="text/babel" src="components.jsx"></script>
   <script type="text/babel" src="AttentionPlayground.jsx"></script>
   <script type="text/babel" src="tweaks-panel.jsx"></script>
   <script type="text/babel">
     const { createRoot } = ReactDOM;
     const { useState } = React;
-
-    AttendShell.mount({ chapter: "Chapter 4", section: "§4 Splitting Q, K, V", progress: 57, activeId: "§4" });
 
     const TWEAK_DEFAULTS = {
       "introVariant": "storytelling",
@@ -197,6 +212,10 @@
       );
     }
 
+    createRoot(document.getElementById('sidebar-root')).render(<Sidebar />);
+    createRoot(document.getElementById('topbar-root')).render(
+      <TopBar chapter="Chapter 4" section="§4 Splitting Q, K, V" progress={57} />
+    );
     createRoot(document.getElementById('intro-root')).render(<Intro />);
     createRoot(document.getElementById('playground-root')).render(<AttentionPlayground />);
 
