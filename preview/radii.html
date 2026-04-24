@@ -1,0 +1,20 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .row { display: flex; gap: 16px; align-items: center; }
+  .r { background: var(--paper-2); border: 1px solid var(--paper-3); width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .tag { margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-align: center; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+</style>
+</head><body>
+<div class="card">
+  <div class="row">
+    <div class="col"><div class="r" style="border-radius: 0">0</div><div class="tag">0 · matrix cells</div></div>
+    <div class="col"><div class="r" style="border-radius: 2px">2</div><div class="tag">1 · 2px</div></div>
+    <div class="col"><div class="r" style="border-radius: 4px">4</div><div class="tag">2 · 4px · tags</div></div>
+    <div class="col"><div class="r" style="border-radius: 8px">8</div><div class="tag">3 · 8px · default</div></div>
+    <div class="col"><div class="r" style="border-radius: 12px">12</div><div class="tag">4 · 12px · panels</div></div>
+    <div class="col"><div class="r" style="border-radius: 999px; width: 140px;">pill</div><div class="tag">pill · chips only</div></div>
+  </div>
+</div>
+</body></html>

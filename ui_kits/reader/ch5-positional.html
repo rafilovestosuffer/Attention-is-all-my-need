@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Attend · §5 Positional encodings</title>
+<link rel="icon" href="../../assets/brand/logomark.svg">
+<link rel="stylesheet" href="chapter.css">
+<script src="shell.js"></script>
+</head><body>
+<div class="app" data-screen-label="Reader · §5">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader">
+    <div class="topbar" id="topbar"></div>
+
+    <div class="eyebrow">Part III · Multi-head and beyond</div>
+    <h1 class="hero">Positional encodings, <em>a choir of sinusoids.</em></h1>
+    <p class="lede">Attention is permutation-invariant. Shuffle the tokens and the math is unchanged — which is a disaster for language, where order is meaning. The Transformer fixes this by adding a pattern to every token embedding that depends only on its position.</p>
+
+    <p>Each position <em class="math">pos</em> gets a <em class="math">d<sub>model</sub></em>-dimensional vector whose even entries are sines and odd entries are cosines — each at a different frequency:</p>
+    <p style="text-align:center;font-family:var(--font-display);font-style:italic;font-size:18px;color:var(--ink);margin:20px 0">
+      PE(pos, 2i)   = sin(pos / 10000<sup>2i/d</sup>)<br>
+      PE(pos, 2i+1) = cos(pos / 10000<sup>2i/d</sup>)
+    </p>
+
+    <h2>The pattern</h2>
+    <p>Below, rows are positions (0…31), columns are dimensions (0…63). Low-index columns oscillate fast; high-index columns drift slow. Together they give every position a unique fingerprint — and, crucially, one that encodes <em>relative</em> distance in a linearly recoverable way.</p>
+
+    <div class="fig">
+      <div class="fig__title">Figure 6 · sinusoidal positional encoding</div>
+      <div class="fig__body">
+        <div class="controls">
+          <div class="ctrl"><span>d<sub>model</sub></span>
+            <input id="dm" type="range" min="16" max="128" step="16" value="64"><span class="val" id="dmval">64</span>
+          </div>
+          <div class="ctrl"><span>sequence length</span>
+            <input id="sl" type="range" min="8" max="64" step="8" value="32"><span class="val" id="slval">32</span>
+          </div>
+        </div>
+        <canvas id="pe-canvas" width="640" height="320" style="width:100%;max-width:640px;margin-top:12px;background:var(--paper);border:1px solid var(--paper-3);border-radius:4px;image-rendering:pixelated"></canvas>
+        <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--ink-3);margin-top:4px;max-width:640px">
+          <span>← dim 0 (fast)</span>
+          <span>dim d/2 (medium)</span>
+          <span>dim d-1 (slow) →</span>
+        </div>
+
+        <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--paper-3)">
+          <div class="matrix__label" style="color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-family:var(--font-sans);font-weight:600;margin-bottom:10px">Trace one dimension</div>
+          <div class="controls">
+            <div class="ctrl"><span>dimension i</span>
+              <input id="tracei" type="range" min="0" max="63" step="1" value="2"><span class="val" id="traceival">2</span>
+            </div>
+          </div>
+          <canvas id="trace-canvas" width="640" height="120" style="width:100%;max-width:640px;margin-top:10px;background:var(--paper);border:1px solid var(--paper-3);border-radius:4px"></canvas>
+        </div>
+      </div>
+      <div class="fig__cap"><b>Fig 6</b> — the encoding is added to the token embedding before attention. The network can learn to attend by position ("look two tokens back") because relative offsets are linear in this basis.</div>
+    </div>
+
+    <div class="callout"><strong>One sentence to remember —</strong> the Transformer doesn't know what "first" means, so we tell it — in a basis of sinusoids.</div>
+
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
+
+<script>
+AttendShell.mount({ chapter: "Chapter 5", section: "§5 Positional encodings", progress: 84, activeId: "§5" });
+
+(() => {
+  const pe = (pos, i, d) => {
+    const freq = 1 / Math.pow(10000, (2 * Math.floor(i/2)) / d);
+    return i % 2 === 0 ? Math.sin(pos * freq) : Math.cos(pos * freq);
+  };
+
+  const heatCol = (v) => {
+    // v in [-1, 1] → paper (0) to ink/query accents
+    if (v >= 0) {
+      const t = Math.min(1, v);
+      return `rgba(194, 65, 12, ${t.toFixed(3)})`;
+    } else {
+      const t = Math.min(1, -v);
+      return `rgba(14, 124, 107, ${t.toFixed(3)})`;
+    }
+  };
+
+  const renderHeatmap = () => {
+    const dm = +document.getElementById('dm').value;
+    const sl = +document.getElementById('sl').value;
+    document.getElementById('dmval').textContent = dm;
+    document.getElementById('slval').textContent = sl;
+    document.getElementById('tracei').max = dm - 1;
+
+    const c = document.getElementById('pe-canvas');
+    c.width = dm * 8;
+    c.height = sl * 8;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#F6F1E7';
+    ctx.fillRect(0, 0, c.width, c.height);
+    for (let p = 0; p < sl; p++) {
+      for (let i = 0; i < dm; i++) {
+        ctx.fillStyle = heatCol(pe(p, i, dm));
+        ctx.fillRect(i * 8, p * 8, 8, 8);
+      }
+    }
+  };
+
+  const renderTrace = () => {
+    const dm = +document.getElementById('dm').value;
+    const sl = +document.getElementById('sl').value;
+    const i = Math.min(dm - 1, +document.getElementById('tracei').value);
+    document.getElementById('traceival').textContent = i;
+    const c = document.getElementById('trace-canvas');
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#F6F1E7';
+    ctx.fillRect(0, 0, c.width, c.height);
+    // axes
+    ctx.strokeStyle = '#E6DBC4'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, 60); ctx.lineTo(c.width, 60); ctx.stroke();
+    // curve
+    ctx.strokeStyle = '#C2410C'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let p = 0; p < sl; p++) {
+      const x = (p / (sl - 1)) * (c.width - 20) + 10;
+      const y = 60 - pe(p, i, dm) * 45;
+      if (p === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    // dots
+    ctx.fillStyle = '#C2410C';
+    for (let p = 0; p < sl; p++) {
+      const x = (p / (sl - 1)) * (c.width - 20) + 10;
+      const y = 60 - pe(p, i, dm) * 45;
+      ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+  };
+
+  const renderAll = () => { renderHeatmap(); renderTrace(); };
+  ['dm','sl','tracei'].forEach(id => document.getElementById(id).addEventListener('input', renderAll));
+  renderAll();
+})();
+</script>
+</body></html>

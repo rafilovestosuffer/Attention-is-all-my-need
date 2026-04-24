@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .icons { display: grid; grid-template-columns: repeat(10, 1fr); gap: 14px; color: var(--ink); }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 9px; color: var(--ink-3); }
+  svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; color: var(--ink); }
+</style>
+</head><body>
+<div class="card">
+  <div class="icons">
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>back</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>next</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>run</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>matrix</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>heads</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>search</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h16"/></svg>menu</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M12 20l9-16H3l9 16z"/></svg>softmax</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg>notes</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v.01M12 8v4"/></svg>info</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>check</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>close</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="12" r="3"/><circle cx="5"  cy="12" r="3"/></svg>more</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>add</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M10 11v6M14 11v6M5 6l1 14h12l1-14"/></svg>reset</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 4v5h-5"/></svg>rerun</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-6 4 2 8-6-4-6 4 2-8-6-4h7z"/></svg>bookmark</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>progress</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h12"/></svg>list</div>
+    <div class="cell"><svg viewBox="0 0 24 24"><path d="M4 4h16v4H4zM4 10h16v4H4zM4 16h10v4H4z"/></svg>layers</div>
+  </div>
+</div>
+</body></html>

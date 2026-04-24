@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 24px 28px; }
+  .grid { display: grid; grid-template-columns: 140px 1fr 80px; column-gap: 20px; row-gap: 18px; align-items: baseline; }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.5; }
+  .meta b { display: block; color: var(--ink); font-size: 11px; letter-spacing: 0.08em; margin-bottom: 2px; }
+  .spec { color: var(--ink); font-family: var(--font-display); font-optical-sizing: auto; font-feature-settings: "kern"; }
+  .tag  { font-family: var(--font-mono); font-size: 10px; color: var(--ink-4); text-align: right; }
+  .rule { grid-column: 1 / -1; height: 1px; background: var(--paper-3); }
+  .s1 { font-weight: 500; font-size: 48px; line-height: 1.05; letter-spacing: -0.022em; font-variation-settings: "opsz" 48; }
+  .s2 { font-weight: 500; font-size: 32px; line-height: 1.15; letter-spacing: -0.018em; font-variation-settings: "opsz" 32; }
+  .s3 { font-weight: 600; font-size: 22px; line-height: 1.2;  letter-spacing: -0.01em;  font-variation-settings: "opsz" 18; }
+  .s1 em, .s2 em, .s3 em { font-style: italic; font-weight: 500; }
+</style>
+</head><body>
+<div class="card">
+  <div class="grid">
+    <div class="meta"><b>h1 · display</b>Source Serif 4<br>500 · 48/50</div>
+    <div class="spec s1">Attention, from <em>scratch</em></div>
+    <div class="tag">−0.022em</div>
+
+    <div class="rule"></div>
+
+    <div class="meta"><b>h2 · section</b>Source Serif 4<br>500 · 32/37</div>
+    <div class="spec s2">Why we scale by <em>√d<sub>k</sub></em></div>
+    <div class="tag">−0.018em</div>
+
+    <div class="rule"></div>
+
+    <div class="meta"><b>h3 · sub</b>Source Serif 4<br>600 · 22/26</div>
+    <div class="spec s3">A single attention head</div>
+    <div class="tag">−0.01em</div>
+  </div>
+</div>
+</body></html>

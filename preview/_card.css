@@ -1,0 +1,70 @@
+/* Shared card shell for design-system preview cards.
+   Cards render 700px wide inside the Design System tab.             */
+@import url("../colors_and_type.css");
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.card {
+  box-sizing: border-box;
+  width: 700px;
+  padding: 28px 32px;
+  background: var(--paper);
+  font-family: var(--font-sans);
+}
+
+.card--ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+}
+
+.swatch {
+  border-radius: 6px;
+  border: 1px solid var(--paper-3);
+  padding: 10px 12px;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.swatch__name { font-weight: 600; font-family: var(--font-sans); }
+.swatch__hex  { opacity: 0.82; }
+
+.meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--paper-2);
+  border: 1px solid var(--paper-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+.divider { height: 1px; background: var(--paper-3); margin: 16px 0; border: 0; }

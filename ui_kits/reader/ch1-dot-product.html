@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Attend · §1 A vector, a dot product</title>
+<link rel="icon" href="../../assets/brand/logomark.svg">
+<link rel="stylesheet" href="chapter.css">
+<script src="shell.js"></script>
+</head><body>
+<div class="app" data-screen-label="Reader · §1">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader">
+    <div class="topbar" id="topbar"></div>
+
+    <div class="eyebrow">Part I · Foundations</div>
+    <h1 class="hero">A vector, <em>a dot product.</em></h1>
+    <p class="lede">Before "attention" is anything, it is a way of asking how similar two vectors are. That operation — the dot product — is the smallest piece of the Transformer. Get it in your bones and the rest is bookkeeping.</p>
+
+    <p>Two vectors. Say the model has learned to represent the word <em class="math">cat</em> as a four-number sketch:</p>
+    <div class="fig">
+      <div class="fig__title">Figure 1 · a single 4-vector</div>
+      <div class="fig__body" id="fig-vector-cat" style="display:flex;gap:12px;align-items:center;justify-content:center;padding:32px"></div>
+      <div class="fig__cap"><b>Fig 1</b> — each cell is one dimension. Nothing about any single number means anything on its own. Meaning lives in the <em>pattern</em>.</div>
+    </div>
+
+    <p>The dot product of two such vectors is one number. It is bigger when the vectors point the same way, zero when they are perpendicular, and negative when they disagree. That is all attention knows how to ask: <em class="math">"are these two things aligned?"</em></p>
+
+    <h2>Drag the second vector</h2>
+    <p>Below, the <em class="tok-q">query</em> is fixed. Drag the tip of the <em class="tok-k">key</em> and watch the dot product update. Notice: same direction wins, opposite direction loses, orthogonal gives zero.</p>
+
+    <div class="fig">
+      <div class="fig__title">Figure 2 · interactive dot product</div>
+      <div class="fig__body" style="display:grid;grid-template-columns:1fr 240px;gap:32px;align-items:center">
+        <svg id="dp-svg" viewBox="0 0 400 300" style="width:100%;max-width:460px;justify-self:center"></svg>
+        <div id="dp-readout" style="font-family:var(--font-mono);font-size:13px;line-height:2"></div>
+      </div>
+      <div class="fig__cap"><b>Fig 2</b> — the dot product is <em class="math">q · k = |q||k|cos θ</em>. When you drag the key to angle 0°, cos θ = 1 and the score is maximal.</div>
+    </div>
+
+    <h2>Why this matters</h2>
+    <p>Attention scores six tokens against six tokens by taking <em>thirty-six</em> of these dot products. That is the entire first half of the attention equation. Everything that comes later — scaling, softmax, the weighted sum — exists to turn this raw similarity into a usable answer.</p>
+
+    <div class="callout"><strong>One sentence to remember —</strong> the dot product measures alignment. Attention is built on nothing else.</div>
+
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
+
+<script>
+AttendShell.mount({ chapter: "Chapter 1", section: "§1 A vector, a dot product", progress: 14, activeId: "§1" });
+
+// Fig 1 — cat vector
+const cat = [0.9, 0.1, 0.2, -0.1];
+document.getElementById('fig-vector-cat').innerHTML =
+  '<span class="tok-q" style="font-size:24px;margin-right:16px">cat =</span>' +
+  '<div style="display:flex;gap:3px">' + cat.map(v => {
+    const w = (v + 1) / 2;
+    return `<div class="cell" style="width:54px;height:54px;font-size:13px;background:${AttendShell.heatVar(w)}">${AttendShell.fmt(v)}</div>`;
+  }).join('') + '</div>';
+
+// Fig 2 — interactive dot product
+(() => {
+  const svg = document.getElementById('dp-svg');
+  const readout = document.getElementById('dp-readout');
+  const CX = 200, CY = 150, SCALE = 90;
+  const q = { x: 1.0, y: 0.2 };  // query (fixed)
+  let k = { x: 0.7, y: -0.5 };    // draggable key
+
+  const render = () => {
+    const qx = CX + q.x * SCALE, qy = CY - q.y * SCALE;
+    const kx = CX + k.x * SCALE, ky = CY - k.y * SCALE;
+    const dp = q.x * k.x + q.y * k.y;
+    const qn = Math.hypot(q.x, q.y), kn = Math.hypot(k.x, k.y);
+    const cos = dp / (qn * kn);
+    const theta = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+
+    svg.innerHTML = `
+      <defs>
+        <marker id="ahq" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--query)"/>
+        </marker>
+        <marker id="ahk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--key)"/>
+        </marker>
+      </defs>
+      <line x1="20" y1="${CY}" x2="380" y2="${CY}" stroke="var(--paper-3)" stroke-width="1"/>
+      <line x1="${CX}" y1="20" x2="${CX}" y2="280" stroke="var(--paper-3)" stroke-width="1"/>
+      <g opacity="0.4">
+        ${[-1, 1].map(v => `<circle cx="${CX + v*SCALE}" cy="${CY}" r="2" fill="var(--ink-4)"/>`).join('')}
+        ${[-1, 1].map(v => `<circle cx="${CX}" cy="${CY - v*SCALE}" r="2" fill="var(--ink-4)"/>`).join('')}
+      </g>
+      <line x1="${CX}" y1="${CY}" x2="${qx}" y2="${qy}" stroke="var(--query)" stroke-width="3" marker-end="url(#ahq)"/>
+      <text x="${qx + 10}" y="${qy - 6}" fill="var(--query)" font-family="var(--font-display)" font-style="italic" font-weight="600" font-size="16">q</text>
+      <line x1="${CX}" y1="${CY}" x2="${kx}" y2="${ky}" stroke="var(--key)" stroke-width="3" marker-end="url(#ahk)"/>
+      <text x="${kx + 10}" y="${ky - 6}" fill="var(--key)" font-family="var(--font-display)" font-style="italic" font-weight="600" font-size="16">k</text>
+      <circle cx="${kx}" cy="${ky}" r="10" fill="var(--key)" fill-opacity="0.2" stroke="var(--key)" stroke-width="1.5" style="cursor:grab" id="k-handle"/>
+    `;
+
+    readout.innerHTML = `
+      <div style="color:var(--ink-3);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">dot product</div>
+      <div style="font-size:28px;color:${dp > 0 ? 'var(--ok)' : dp < -0.05 ? 'var(--err)' : 'var(--ink-3)'};font-weight:600">${AttendShell.fmt(dp, 2)}</div>
+      <div style="border-top:1px solid var(--paper-3);margin:14px 0;padding-top:10px">
+        <div>|q| = <b>${AttendShell.fmt(qn)}</b></div>
+        <div>|k| = <b>${AttendShell.fmt(kn)}</b></div>
+        <div>cos θ = <b>${AttendShell.fmt(cos)}</b></div>
+        <div>θ = <b>${theta.toFixed(0)}°</b></div>
+      </div>
+    `;
+  };
+
+  render();
+
+  let dragging = false;
+  svg.addEventListener('mousedown', (e) => {
+    if (e.target.id === 'k-handle') { dragging = true; e.preventDefault(); }
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const r = svg.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (400 / r.width);
+    const py = (e.clientY - r.top)  * (300 / r.height);
+    k.x = (px - CX) / SCALE;
+    k.y = -(py - CY) / SCALE;
+    // clamp
+    const len = Math.hypot(k.x, k.y);
+    if (len > 1.3) { k.x *= 1.3 / len; k.y *= 1.3 / len; }
+    render();
+  });
+  window.addEventListener('mouseup', () => dragging = false);
+})();
+</script>
+</body></html>

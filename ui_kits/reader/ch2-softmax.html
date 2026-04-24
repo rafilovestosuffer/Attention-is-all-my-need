@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Attend · §2 From similarity to attention</title>
+<link rel="icon" href="../../assets/brand/logomark.svg">
+<link rel="stylesheet" href="chapter.css">
+<script src="shell.js"></script>
+</head><body>
+<div class="app" data-screen-label="Reader · §2">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader">
+    <div class="topbar" id="topbar"></div>
+
+    <div class="eyebrow">Part I · Foundations</div>
+    <h1 class="hero">From similarity <em>to attention.</em></h1>
+    <p class="lede">A list of dot-product scores is not yet an attention pattern. We need to turn raw numbers into weights that sum to one — a probability distribution over what to look at. That is what softmax does.</p>
+
+    <p>Start with six scores: one per token. These might be dot products of a query against six keys. They can be anything — positive, negative, tiny, huge.</p>
+
+    <h2>Softmax, with a dial</h2>
+    <p>Drag the <strong>temperature</strong> below. At <em class="math">T = 1</em> you get the textbook softmax. Push <em class="math">T</em> toward zero and the distribution sharpens into a one-hot argmax. Push it toward infinity and it flattens into a uniform average.</p>
+
+    <div class="fig">
+      <div class="fig__title">Figure 3 · softmax temperature</div>
+      <div class="fig__body">
+        <div class="controls">
+          <div class="ctrl">
+            <span>temperature T</span>
+            <input id="T" type="range" min="0.1" max="4" step="0.05" value="1">
+            <span class="val" id="Tval">1.00</span>
+          </div>
+          <div class="ctrl">
+            <span>randomize scores</span>
+            <button id="shuf" style="padding:4px 10px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer">shuffle</button>
+          </div>
+        </div>
+        <div id="sm-viz" style="display:grid;grid-template-columns:60px 1fr 80px 1fr 80px;gap:10px 14px;align-items:center;font-family:var(--font-mono);font-size:11px"></div>
+      </div>
+      <div class="fig__cap"><b>Fig 3</b> — the height of each orange bar is the final attention weight. All six weights always sum to 1.</div>
+    </div>
+
+    <h2>Why exponentiate?</h2>
+    <p>Softmax is <em class="math">exp(x<sub>i</sub>) / Σ exp(x<sub>j</sub>)</em>. The exponential is what makes small differences in scores blow up into big differences in weights — a score that is 2 units higher gets about <em class="math">e² ≈ 7×</em> the attention. That sharpness is why the model can make decisions instead of averaging everything into mush.</p>
+
+    <div class="callout"><strong>One sentence to remember —</strong> softmax turns scores into weights that sum to 1, and its exponential gives the network the power to commit.</div>
+
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
+
+<script>
+AttendShell.mount({ chapter: "Chapter 2", section: "§2 From similarity to attention", progress: 28, activeId: "§2" });
+
+(() => {
+  const viz = document.getElementById('sm-viz');
+  const Tinp = document.getElementById('T');
+  const Tval = document.getElementById('Tval');
+  let scores = [1.2, 2.4, 0.3, -0.5, 1.2, 0.8];
+  const TOKENS = ["the", "cat", "sat", "on", "the", "mat"];
+
+  const render = () => {
+    const T = +Tinp.value;
+    Tval.textContent = AttendShell.fmt(T);
+    const ws = AttendShell.softmax(scores, T);
+    const maxS = Math.max(...scores.map(Math.abs));
+
+    viz.innerHTML = scores.map((s, i) => {
+      const w = ws[i];
+      const scoreBarW = (Math.abs(s) / maxS) * 100;
+      const scoreBarC = s >= 0 ? 'var(--key)' : 'var(--err)';
+      return `
+        <span class="tok-q" style="font-size:14px;text-align:right">${TOKENS[i]}</span>
+        <div style="height:18px;background:var(--paper-2);border-radius:2px;position:relative">
+          <div style="position:absolute;${s>=0?'left:50%':'right:50%'};top:0;bottom:0;width:${scoreBarW/2}%;background:${scoreBarC};border-radius:1px"></div>
+          <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--ink-4)"></div>
+        </div>
+        <span style="text-align:right">${AttendShell.fmt(s)}</span>
+        <div style="height:18px;background:var(--paper-2);border-radius:2px;position:relative;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${w*100}%;background:${AttendShell.heatVar(w)};transition:width 120ms"></div>
+        </div>
+        <span style="text-align:right;color:var(--heat-5);font-weight:600">${AttendShell.fmt(w, 3)}</span>
+      `;
+    }).join('');
+  };
+
+  Tinp.addEventListener('input', render);
+  document.getElementById('shuf').addEventListener('click', () => {
+    scores = Array.from({ length: 6 }, () => (Math.random() * 5 - 1.5));
+    render();
+  });
+  render();
+})();
+</script>
+</body></html>

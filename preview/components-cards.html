@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card-demo { background: var(--paper); border: 1px solid var(--paper-3); border-radius: 10px; padding: 18px; }
+  .card-demo.hover { box-shadow: var(--shadow-2); border-color: var(--paper-edge); }
+  .card-demo.active { border-color: var(--ink); border-width: 1px; }
+  .tag { display: inline-block; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); margin-bottom: 10px; }
+  h4 { margin: 0 0 6px; font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--ink); }
+  p { margin: 0; font-size: 13px; color: var(--ink-3); line-height: 1.5; }
+</style>
+</head><body>
+<div class="card">
+  <div class="grid">
+    <div class="card-demo">
+      <span class="tag">RESTING</span>
+      <h4>Scaled dot-product</h4>
+      <p>The atom of attention. One query looks at every key and borrows value.</p>
+    </div>
+    <div class="card-demo hover">
+      <span class="tag">HOVER</span>
+      <h4>Scaled dot-product</h4>
+      <p>Lifts one shadow step. No scale, no color change.</p>
+    </div>
+    <div class="card-demo active">
+      <span class="tag">SELECTED</span>
+      <h4>Scaled dot-product</h4>
+      <p>Border goes ink. No colored fill — we don't flag with color.</p>
+    </div>
+    <div class="card-demo" style="background: var(--paper-2);">
+      <span class="tag">INSET · paper-2</span>
+      <h4>Scaled dot-product</h4>
+      <p>Use paper-2 when the card sits inside a white playground panel.</p>
+    </div>
+  </div>
+</div>
+</body></html>

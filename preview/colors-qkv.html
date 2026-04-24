@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .slot { border: 1px solid var(--paper-3); border-radius: 8px; overflow: hidden; background: #fff; }
+  .top  { padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; color: #fff; }
+  .glyph{ font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 40px; line-height: 1; }
+  .role { font-family: var(--font-sans); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; opacity: .9; font-weight: 600; }
+  .bottom{ display: flex; }
+  .chip { flex: 1; padding: 10px 12px; font-family: var(--font-mono); font-size: 10px; }
+  /* Upgraded Key color: richer, more saturated emerald-teal */
+</style>
+</head><body>
+<div class="card">
+  <div class="trio">
+    <div class="slot">
+      <div class="top" style="background: #C2410C">
+        <span class="glyph">Q</span>
+        <span class="role">Query</span>
+      </div>
+      <div class="bottom">
+        <div class="chip" style="background: #F5D6BF; color: #7A2A08">soft · #F5D6BF</div>
+        <div class="chip" style="background: #C2410C; color: #fff">base · #C2410C</div>
+      </div>
+    </div>
+    <div class="slot">
+      <div class="top" style="background: #0E7C6B">
+        <span class="glyph">K</span>
+        <span class="role">Key</span>
+      </div>
+      <div class="bottom">
+        <div class="chip" style="background: #B8E0D4; color: #0A4A41">soft · #B8E0D4</div>
+        <div class="chip" style="background: #0E7C6B; color: #fff">base · #0E7C6B</div>
+      </div>
+    </div>
+    <div class="slot">
+      <div class="top" style="background: #7A4BA8">
+        <span class="glyph">V</span>
+        <span class="role">Value</span>
+      </div>
+      <div class="bottom">
+        <div class="chip" style="background: #E0D2EE; color: #3E2459">soft · #E0D2EE</div>
+        <div class="chip" style="background: #7A4BA8; color: #fff">base · #7A4BA8</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

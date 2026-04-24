@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  pre { background: var(--code-bg); color: var(--code-fg); font-family: var(--font-mono); font-size: 13px; line-height: 1.6; padding: 16px 18px; border-radius: 8px; margin: 0; }
+  .kw { color: #E6A968; } .st { color: #9FC4A1; } .nm { color: #D6C78A; } .cm { color: #6A685E; font-style: italic; }
+  .math { font-family: var(--font-display); font-style: italic; font-size: 22px; color: var(--ink); text-align: center; padding: 12px 0; }
+  .math .q { color: var(--query); font-weight: 600; }
+  .math .k { color: var(--key);   font-weight: 600; }
+  .math .v { color: var(--value); font-weight: 600; }
+  .divider { margin: 14px 0; }
+</style>
+</head><body>
+<div class="card">
+  <div class="math">Attention(<span class="q">Q</span>, <span class="k">K</span>, <span class="v">V</span>) = softmax(<span class="q">Q</span><span class="k">K</span>ᵀ / √dₖ) <span class="v">V</span></div>
+  <div class="divider"></div>
+<pre><span class="cm"># scaled dot-product attention</span>
+<span class="kw">def</span> attention(q, k, v, mask=<span class="nm">None</span>):
+    scores = q @ k.transpose(-<span class="nm">2</span>, -<span class="nm">1</span>) / math.sqrt(q.size(-<span class="nm">1</span>))
+    weights = scores.softmax(dim=-<span class="nm">1</span>)
+    <span class="kw">return</span> weights @ v</pre>
+</div>
+</body></html>

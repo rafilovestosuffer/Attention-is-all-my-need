@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Attend · §4.3 Splitting Q, K, V — a worked example</title>
+  <link rel="icon" href="../../assets/brand/logomark.svg" />
+  <link rel="stylesheet" href="reader.css" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <!-- Plain-JS math helpers (no bundler). Exported on window.AttMath. -->
+  <script>
+    // Inline-minified version of attention-math.js to avoid CORS/module load.
+    window.AttMath = (() => {
+      const zeros = (r, c) => Array.from({ length: r }, () => Array(c).fill(0));
+      const matmul = (A, B) => {
+        const r = A.length, n = A[0].length, c = B[0].length;
+        const out = zeros(r, c);
+        for (let i = 0; i < r; i++) for (let k = 0; k < n; k++) for (let j = 0; j < c; j++) out[i][j] += A[i][k] * B[k][j];
+        return out;
+      };
+      const T = A => { const r = A.length, c = A[0].length; const o = zeros(c, r); for (let i=0;i<r;i++) for (let j=0;j<c;j++) o[j][i] = A[i][j]; return o; };
+      const scale = (A, s) => A.map(r => r.map(x => x * s));
+      const softmaxRows = (A, T = 1) => A.map(row => {
+        const sc = row.map(x => x / T);
+        const m = Math.max(...sc);
+        const ex = sc.map(x => Math.exp(x - m));
+        const sum = ex.reduce((a,b)=>a+b,0);
+        return ex.map(x => x / sum);
+      });
+      const fmt = (n, d = 2) => { const s = n.toFixed(d); return s === "-0.00" ? "0.00" : s; };
+      const heatVar = w => `var(--heat-${Math.max(0, Math.min(5, Math.floor(w * 6)))})`;
+      const TOKENS = ["the", "cat", "sat", "on", "the", "mat"];
+      const Q0 = [[0.9,0.1,0.2,-0.1],[0.2,1.0,0.3,0.1],[0.1,0.4,0.8,0.2],[0.3,0.0,0.2,0.7],[0.9,0.1,0.2,-0.1],[0.2,0.9,0.1,0.4]];
+      const K0 = [[0.8,0.2,0.1,0.0],[0.1,0.9,0.2,0.2],[0.2,0.3,0.9,0.1],[0.2,0.1,0.1,0.8],[0.8,0.2,0.1,0.0],[0.1,0.8,0.2,0.3]];
+      const V0 = [[0.3,-0.1,0.2,0.1],[0.1,0.8,-0.1,0.3],[0.5,0.2,0.4,-0.1],[-0.2,0.1,0.3,0.5],[0.3,-0.1,0.2,0.1],[0.2,0.7,-0.2,0.4]];
+      const computeAttention = (Q, K, V, { scaled = true, temperature = 1 } = {}) => {
+        const dk = Q[0].length;
+        const Kt = T(K);
+        const scores = matmul(Q, Kt);
+        const scaledScores = scaled ? scale(scores, 1 / Math.sqrt(dk)) : scores;
+        const weights = softmaxRows(scaledScores, temperature);
+        const output  = matmul(weights, V);
+        return { Kt, scores, scaledScores, weights, output, dk };
+      };
+      return { zeros, matmul, T, scale, softmaxRows, fmt, heatVar, TOKENS, Q0, K0, V0, computeAttention };
+    })();
+  </script>
+</head>
+<body>
+  <div class="app" data-screen-label="Reader · §4.3">
+    <div id="sidebar-root"></div>
+    <main class="reader">
+      <div id="topbar-root"></div>
+
+      <div id="intro-root"></div>
+
+      <div id="playground-root"></div>
+
+      <h2>What just happened</h2>
+
+      <p>
+        Each row of the output is a <strong>convex combination</strong> of
+        the value rows, weighted by how much this query "asked" each key. A
+        row that attends uniformly just averages all values; a row that attends
+        sharply copies a single value. Multi-head attention runs
+        <em class="math">h</em> copies of this in parallel, each with its own
+        learned Q, K, V projections — giving the model <em class="math">h</em>
+        different ways to relate tokens.
+      </p>
+
+      <div id="callout-1"></div>
+
+      <h3>Try it yourself</h3>
+
+      <p>
+        Reproduce the numbers above with NumPy. The shapes are small enough
+        that you can print every intermediate.
+      </p>
+
+      <div id="scratch-1"></div>
+
+      <p>
+        Next up: we'll stack <em class="math">h = 8</em> heads, each with
+        <em class="math">d<sub>k</sub> = 64</em>, and see how concatenation
+        followed by the output projection <em class="math">W<sup>O</sup></em>
+        gives us back a <code>[n, d_model]</code> tensor — the same shape we
+        started with, now enriched by eight distinct attention views.
+      </p>
+
+      <div class="footer-nav">
+        <a href="#" class="fn fn--prev">
+          <span class="fn__eyebrow">§4.2</span>
+          <span class="fn__title">← Shapes and splits</span>
+        </a>
+        <a href="#" class="fn fn--next">
+          <span class="fn__eyebrow">§4.4</span>
+          <span class="fn__title">Per-head attention →</span>
+        </a>
+      </div>
+    </main>
+  </div>
+
+  <style>
+    .footer-nav { display: flex; justify-content: space-between; gap: 14px; margin-top: 72px; border-top: 1px solid var(--paper-3); padding-top: 20px; }
+    .fn { flex: 1; padding: 14px 18px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 8px; text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 4px; transition: all 220ms; }
+    .fn:hover { background: #fff; box-shadow: var(--shadow-1); }
+    .fn--next { text-align: right; }
+    .fn__eyebrow { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; }
+    .fn__title { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 18px; }
+  </style>
+
+  <script type="text/babel" src="components.jsx"></script>
+  <script type="text/babel" src="AttentionPlayground.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel">
+    const { createRoot } = ReactDOM;
+    const { useState } = React;
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "introVariant": "storytelling",
+      "showEyebrow": true,
+      "showLede": true,
+      "dropcap": false,
+      "heroSize": 48,
+      "ledeItalic": true,
+      "accent": "query"
+    }/*EDITMODE-END*/;
+
+    const INTROS = {
+      scholarly: {
+        eyebrow: "Chapter 4 · §4.3",
+        title: ["Splitting ", "Q", ", ", "K", ", ", "V"],
+        lede: "Before we can give each head its own view, we slice the shared Q, K, V tensors along their feature dimension. The math is almost embarrassingly simple — but the shapes are where everyone gets lost.",
+        body: "We start from the d-model-dimensional projections built in §4.2. For a sequence of length n we have three matrices of shape [n, d_model]. Multi-head attention says: split each one into h independent chunks of size dₖ = d_model / h, and run attention on each chunk in parallel."
+      },
+      inviting: {
+        eyebrow: "Chapter 4 · one head at a time",
+        title: ["Three matrices, ", "one ", "question"],
+        lede: "You already know how to multiply matrices. That is the whole secret — attention is three multiplications and a softmax, arranged so the model can ask, look, and borrow.",
+        body: "In this section we will walk through a single attention head on six toy tokens, computing every number by hand. Then we will hand the same work to a live playground so you can poke at it until the intuition clicks."
+      },
+      terse: {
+        eyebrow: "§4.3",
+        title: ["Q, K, V — split and conquer"],
+        lede: "Split d-model into h heads of dₖ. Attend. Concatenate. Project.",
+        body: "That is the whole algorithm. The rest of this section exists to convince you that each of those four words is necessary, and that none of them hide magic."
+      },
+      storytelling: {
+        eyebrow: "A worked example · cat, mat, and six tokens",
+        title: ["The sentence ", "that ", "attends to itself"],
+        lede: "Give the model the sentence \"the cat sat on the mat\" and a single attention head. Watch what \"cat\" looks at. Watch what changes when we turn the softmax temperature down.",
+        body: "We'll keep d_model tiny — just four — so every tensor fits on screen. Every number below is computed live: move a slider and the matrices recompute instantly."
+      }
+    };
+
+    function Intro() {
+      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const intro = INTROS[t.introVariant] || INTROS.scholarly;
+      const accentColor =
+        t.accent === "query" ? "var(--query)" :
+        t.accent === "key"   ? "var(--key)"   :
+        t.accent === "value" ? "var(--value)" : "var(--ink)";
+
+      const renderTitle = () => intro.title.map((chunk, i) => {
+        if (chunk === "Q") return <em key={i} className="tok-q">Q</em>;
+        if (chunk === "K") return <em key={i} className="tok-k">K</em>;
+        if (chunk === "V") return <em key={i} className="tok-v">V</em>;
+        return <span key={i}>{chunk}</span>;
+      });
+
+      return (
+        <>
+          {t.showEyebrow && (
+            <div className="label" style={{ color: accentColor, marginBottom: 8 }}>{intro.eyebrow}</div>
+          )}
+          <h1 className="hero" style={{ fontSize: `${t.heroSize}px` }}>
+            {renderTitle()}
+          </h1>
+          {t.showLede && (
+            <p className="lede" style={{ fontStyle: t.ledeItalic ? "italic" : "normal" }}>
+              {intro.lede}
+            </p>
+          )}
+          <p className={t.dropcap ? "has-dropcap" : ""}>{intro.body}</p>
+
+          <TweaksPanel title="Intro tweaks">
+            <TweakSection label="Variant" />
+            <TweakRadio
+              label="Intro voice"
+              value={t.introVariant}
+              options={["scholarly", "inviting", "terse", "storytelling"]}
+              onChange={v => setTweak("introVariant", v)}
+            />
+            <TweakSection label="Display" />
+            <TweakToggle label="Show eyebrow" value={t.showEyebrow} onChange={v => setTweak("showEyebrow", v)} />
+            <TweakToggle label="Show lede"    value={t.showLede}    onChange={v => setTweak("showLede", v)} />
+            <TweakToggle label="Italic lede"  value={t.ledeItalic}  onChange={v => setTweak("ledeItalic", v)} />
+            <TweakToggle label="Dropcap"      value={t.dropcap}     onChange={v => setTweak("dropcap", v)} />
+            <TweakSlider label="Hero size" value={t.heroSize} min={32} max={72} unit="px" onChange={v => setTweak("heroSize", v)} />
+            <TweakSection label="Accent" />
+            <TweakRadio
+              label="Eyebrow color"
+              value={t.accent}
+              options={["query", "key", "value", "ink"]}
+              onChange={v => setTweak("accent", v)}
+            />
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    createRoot(document.getElementById('intro-root')).render(<Intro />);
+    createRoot(document.getElementById('sidebar-root')).render(<Sidebar />);
+    createRoot(document.getElementById('topbar-root')).render(
+      <TopBar chapter="Chapter 4" section="§4.3 Splitting Q, K, V" progress={62} />
+    );
+    createRoot(document.getElementById('playground-root')).render(<AttentionPlayground />);
+
+    createRoot(document.getElementById('mathblock-1')).render(
+      <MathBlock eqn="4.3">
+        <span>head<sub>i</sub> = Attention(</span>
+        <em className="tok-q">Q</em><em>W</em><sub>i</sub><sup>Q</sup>, {" "}
+        <em className="tok-k">K</em><em>W</em><sub>i</sub><sup>K</sup>, {" "}
+        <em className="tok-v">V</em><em>W</em><sub>i</sub><sup>V</sup>)
+      </MathBlock>
+    );
+
+    createRoot(document.getElementById('callout-1')).render(
+      <Callout kind="info" title="Why exactly √dₖ?">
+        If Q and K have independent entries with unit variance, the dot product
+        <em> q · k</em> has variance <em>d<sub>k</sub></em>. Dividing by √d<sub>k</sub>
+        rescales the variance back to 1, keeping softmax inputs in a regime
+        where gradients flow.
+      </Callout>
+    );
+
+    createRoot(document.getElementById('scratch-1')).render(
+      <Scratchpad
+        code={`<span class="cm"># scaled dot-product, six tokens, d_k=4</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+Q, K, V = load_toy()                           <span class="cm"># (6, 4) each</span>
+scores  = Q @ K.T / np.sqrt(<span class="nm">4</span>)          <span class="cm"># (6, 6)</span>
+weights = softmax(scores, axis=-<span class="nm">1</span>)        <span class="cm"># row-wise</span>
+out     = weights @ V                          <span class="cm"># (6, 4)</span>
+
+weights[<span class="nm">1</span>].round(<span class="nm">3</span>)  <span class="cm"># attention pattern for "cat"</span>`}
+        output={`array([<span style="color:var(--query)">0.183</span>, <span style="color:var(--query)">0.221</span>, 0.168, 0.128, 0.183, <span style="color:var(--query)">0.117</span>])`}
+      />
+    );
+  </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Attend · the attention mechanism, from scratch</title>
+<link rel="icon" href="assets/brand/logomark.svg">
+<link rel="stylesheet" href="colors_and_type.css">
+<style>
+  body { margin: 0; background: var(--paper); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 80px 48px 120px; }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 48px; }
+  .brand img { width: 44px; height: 44px; }
+  .brand .name { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 32px; color: var(--ink); }
+  .hero { font-family: var(--font-display); font-weight: 500; font-size: 64px; line-height: 1.05; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 20px; max-width: 18ch; }
+  .hero em { font-style: italic; font-weight: 500; }
+  .lede { font-family: var(--font-display); font-style: italic; font-size: 22px; line-height: 1.55; color: var(--ink-2); max-width: 60ch; margin: 0 0 56px; }
+  h2.section { font-family: var(--font-display); font-weight: 500; font-size: 26px; color: var(--ink); margin: 56px 0 20px; letter-spacing: -0.01em; }
+  .toc { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .ch { display: flex; gap: 18px; padding: 22px 24px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 12px; text-decoration: none; color: var(--ink); transition: all 220ms; }
+  .ch:hover { background: #fff; box-shadow: var(--shadow-2); transform: translateY(-1px); }
+  .ch__n { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--query); min-width: 36px; letter-spacing: 0.06em; }
+  .ch__t { font-family: var(--font-display); font-weight: 500; font-size: 20px; line-height: 1.25; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .ch__t em { font-style: italic; }
+  .ch__d { font-family: var(--font-sans); font-size: 13px; color: var(--ink-3); line-height: 1.5; }
+  .ch__body { flex: 1; }
+  .meta { display: flex; gap: 6px; margin-top: 10px; }
+  .pill { font-family: var(--font-mono); font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--paper-3); color: var(--ink-3); }
+  .pill.live { background: var(--query-soft); color: var(--query-ink); }
+  footer { margin-top: 80px; padding-top: 28px; border-top: 1px solid var(--paper-3); font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); display: flex; justify-content: space-between; }
+</style></head><body>
+<div class="wrap">
+  <div class="brand">
+    <img src="assets/brand/logomark.svg" alt="">
+    <span class="name">Attend</span>
+  </div>
+
+  <h1 class="hero">The attention mechanism, <em>from scratch.</em></h1>
+  <p class="lede">A patient, step-by-step walk through the one idea behind every modern language model — from a single dot product all the way to the full Transformer block, with live math on every page.</p>
+
+  <h2 class="section">Part I · Foundations</h2>
+  <div class="toc">
+    <a class="ch" href="ui_kits/reader/ch1-dot-product.html">
+      <span class="ch__n">§1</span>
+      <div class="ch__body">
+        <div class="ch__t">A vector, a dot product</div>
+        <div class="ch__d">Similarity is just an inner product. We'll build the intuition by hand on two tiny vectors.</div>
+        <div class="meta"><span class="pill live">live</span><span class="pill">10 min</span></div>
+      </div>
+    </a>
+    <a class="ch" href="ui_kits/reader/ch2-softmax.html">
+      <span class="ch__n">§2</span>
+      <div class="ch__body">
+        <div class="ch__t">From similarity to attention</div>
+        <div class="ch__d">Turn scores into weights with softmax. Feel how temperature bends the distribution.</div>
+        <div class="meta"><span class="pill live">live</span><span class="pill">12 min</span></div>
+      </div>
+    </a>
+  </div>
+
+  <h2 class="section">Part II · Scaled dot-product attention</h2>
+  <div class="toc">
+    <a class="ch" href="ui_kits/reader/ch3-scale.html">
+      <span class="ch__n">§3.2</span>
+      <div class="ch__body">
+        <div class="ch__t">Why we scale by <em>√d<sub>k</sub></em></div>
+        <div class="ch__d">Watch variance explode as d<sub>k</sub> grows, and softmax collapse to one-hot. Then fix it.</div>
+        <div class="meta"><span class="pill live">live</span><span class="pill">8 min</span></div>
+      </div>
+    </a>
+    <a class="ch" href="ui_kits/reader/index.html">
+      <span class="ch__n">§4.3</span>
+      <div class="ch__body">
+        <div class="ch__t">Splitting <em>Q</em>, <em>K</em>, <em>V</em></div>
+        <div class="ch__d">A worked example on six tokens. Every number computed live; hover to trace the flow.</div>
+        <div class="meta"><span class="pill live">live · flagship</span><span class="pill">20 min</span></div>
+      </div>
+    </a>
+  </div>
+
+  <h2 class="section">Part III · Multi-head and beyond</h2>
+  <div class="toc">
+    <a class="ch" href="ui_kits/reader/ch4-multihead.html">
+      <span class="ch__n">§4.4</span>
+      <div class="ch__body">
+        <div class="ch__t">Per-head attention</div>
+        <div class="ch__d">Eight heads, each with its own view of the sentence. Compare patterns side-by-side.</div>
+        <div class="meta"><span class="pill live">live</span><span class="pill">15 min</span></div>
+      </div>
+    </a>
+    <a class="ch" href="ui_kits/reader/ch5-positional.html">
+      <span class="ch__n">§5</span>
+      <div class="ch__body">
+        <div class="ch__t">Positional encodings</div>
+        <div class="ch__d">Sinusoids of many wavelengths. Drag through dimensions to see the pattern emerge.</div>
+        <div class="meta"><span class="pill live">live</span><span class="pill">10 min</span></div>
+      </div>
+    </a>
+    <a class="ch" href="ui_kits/reader/ch6-transformer.html">
+      <span class="ch__n">§6</span>
+      <div class="ch__body">
+        <div class="ch__t">The full Transformer block</div>
+        <div class="ch__d">Attention + residual + layer-norm + FFN. Click each wire to see what flows through.</div>
+        <div class="meta"><span class="pill live">live</span><span class="pill">18 min</span></div>
+      </div>
+    </a>
+  </div>
+
+  <footer>
+    <span>Attend · for learners of the attention mechanism</span>
+    <span>Built on <em style="font-family: var(--font-display); font-style: italic;">Attention Is All You Need</em> · Vaswani et al., 2017</span>
+  </footer>
+</div>
+</body></html>

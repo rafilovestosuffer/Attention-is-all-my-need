@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .card { padding: 36px 32px; }
+  .mark { display: flex; align-items: center; gap: 18px; }
+  .mark img { display: block; }
+  .name   { font-family: var(--font-display); font-size: 40px; font-weight: 500; letter-spacing: -0.02em; font-style: italic; color: var(--ink); line-height: 1; }
+  .sub    { font-family: var(--font-sans); font-size: 13px; color: var(--ink-3); margin-top: 6px; }
+  .rule   { flex: 1; height: 1px; background: var(--paper-3); }
+  .tokens { display: flex; gap: 24px; margin-top: 28px; }
+  .token  { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 44px; line-height: 1; }
+</style>
+</head><body>
+<div class="card">
+  <div class="mark">
+    <img src="../assets/brand/logomark.svg" alt="" width="72" height="72">
+    <div>
+      <div class="name">Attend</div>
+      <div class="sub">Learning tool for the attention mechanism · <span class="mono">attend.study</span></div>
+    </div>
+  </div>
+  <div class="tokens">
+    <span class="token" style="color: var(--query)">Q</span>
+    <span class="token" style="color: var(--key)">K</span>
+    <span class="token" style="color: var(--value)">V</span>
+    <span class="rule" style="align-self: center;"></span>
+    <span class="token" style="color: var(--ink); font-size: 28px; align-self: center; font-style: normal;">softmax(QKᵀ/√dₖ)V</span>
+  </div>
+</div>
+</body></html>

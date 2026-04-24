@@ -1,0 +1,74 @@
+/* Shared shell for all Attend reader chapters.
+   Keep things simple: sidebar + centered reader + sticky top bar. */
+@import url("../../colors_and_type.css");
+
+html, body { margin: 0; background: var(--paper); }
+.app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+.reader { max-width: 860px; padding: 56px 48px 160px; margin: 0 auto; position: relative; }
+
+/* Sidebar */
+.sidebar { position: sticky; top: 0; height: 100vh; background: var(--paper-2); border-right: 1px solid var(--paper-3); padding: 24px 20px; overflow-y: auto; font-size: 13px; box-sizing: border-box; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 22px; color: var(--ink); margin-bottom: 22px; }
+.sidebar .brand img { width: 24px; height: 24px; }
+.toc { display: flex; flex-direction: column; gap: 2px; }
+.toc a { display: flex; gap: 10px; padding: 7px 8px; border-radius: 4px; text-decoration: none; color: var(--ink-2); line-height: 1.35; }
+.toc a:hover { background: var(--paper); }
+.toc a.active { background: var(--paper); color: var(--ink); font-weight: 600; }
+.toc a.active .n { color: var(--query); }
+.toc .n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); min-width: 30px; }
+.toc .done .n::before { content: "✓"; color: var(--ok); margin-right: 3px; }
+.toc .done { color: var(--ink-4); }
+
+/* Top bar */
+.topbar { position: sticky; top: 16px; z-index: 10; display: flex; justify-content: space-between; align-items: center; margin-bottom: 36px; padding: 10px 16px; background: color-mix(in oklch, var(--paper) 85%, transparent); backdrop-filter: blur(12px); border: 1px solid var(--paper-3); border-radius: 10px; font-size: 13px; }
+.topbar .chap { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 15px; color: var(--ink); }
+.topbar .sep { color: var(--ink-4); margin: 0 10px; }
+.topbar .section { color: var(--ink-3); }
+.topbar .right { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+
+/* Prose */
+.eyebrow { font-family: var(--font-sans); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--query); margin-bottom: 8px; }
+.reader h1.hero { font-family: var(--font-display); font-weight: 500; font-size: 48px; line-height: 1.08; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 20px; }
+.reader h1.hero em { font-style: italic; }
+.reader .lede { font-family: var(--font-display); font-style: italic; font-size: 20px; line-height: 1.55; color: var(--ink-2); margin: 0 0 40px; max-width: 60ch; }
+.reader h2 { font-family: var(--font-display); font-weight: 500; font-size: 28px; color: var(--ink); margin: 48px 0 16px; letter-spacing: -0.01em; }
+.reader h3 { font-family: var(--font-display); font-weight: 600; font-size: 22px; color: var(--ink); margin: 36px 0 12px; }
+.reader p { margin: 0 0 18px; max-width: 68ch; line-height: 1.65; }
+.reader em.math { font-family: var(--font-display); font-style: italic; font-weight: 500; color: var(--ink); }
+.reader code { background: var(--paper-2); color: var(--ink); padding: 0.1em 0.35em; border-radius: 3px; border: 1px solid var(--paper-3); font-family: var(--font-mono); font-size: 0.9em; }
+
+/* Tokens in math */
+.tok-q { color: var(--query); font-family: var(--font-display); font-style: italic; font-weight: 600; }
+.tok-k { color: var(--key);   font-family: var(--font-display); font-style: italic; font-weight: 600; }
+.tok-v { color: var(--value); font-family: var(--font-display); font-style: italic; font-weight: 600; }
+
+/* Figures */
+.fig { margin: 32px -40px; background: var(--paper-2); border: 1px solid var(--paper-edge); border-radius: 12px; padding: 28px; }
+.fig__title { font-family: var(--font-sans); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); margin-bottom: 14px; }
+.fig__body { background: var(--paper); border: 1px solid var(--paper-3); border-radius: 8px; padding: 20px; }
+.fig__cap { margin-top: 12px; font-family: var(--font-sans); font-size: 13px; color: var(--ink-3); }
+.fig__cap b { color: var(--ink); font-weight: 600; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; margin-right: 8px; }
+
+/* Controls */
+.controls { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.ctrl { display: flex; align-items: center; gap: 8px; }
+.ctrl input[type="range"] { accent-color: var(--query); width: 140px; }
+.ctrl .val { min-width: 44px; text-align: right; color: var(--ink); font-weight: 600; padding: 3px 8px; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 4px; }
+.ctrl input[type="checkbox"] { accent-color: var(--query); }
+
+/* Footer nav */
+.fn-nav { display: flex; justify-content: space-between; gap: 14px; margin-top: 64px; border-top: 1px solid var(--paper-3); padding-top: 20px; }
+.fn { flex: 1; padding: 14px 18px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 8px; text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 4px; transition: all 220ms; }
+.fn:hover { background: #fff; box-shadow: var(--shadow-1); }
+.fn.next { text-align: right; }
+.fn .eb { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; }
+.fn .tt { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 18px; }
+
+/* Cells (reused) */
+.cell { background: #fff; color: var(--ink); font-family: var(--font-mono); font-size: 10px; width: 38px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 1px; font-variant-numeric: tabular-nums; }
+.matrix__grid { display: grid; gap: 2px; background: var(--paper-3); padding: 2px; border-radius: 3px; }
+.matrix__label { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 14px; text-align: center; margin-bottom: 4px; color: var(--ink); }
+
+/* Callout */
+.callout { margin: 24px 0; padding: 14px 18px; background: var(--key-soft); color: var(--key-ink); border-left: 3px solid var(--key); border-radius: 0 6px 6px 0; font-size: 14px; line-height: 1.55; }
+.callout strong { color: var(--key-ink); }

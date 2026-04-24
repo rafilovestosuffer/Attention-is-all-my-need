@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Attend · §6 The full Transformer block</title>
+<link rel="icon" href="../../assets/brand/logomark.svg">
+<link rel="stylesheet" href="chapter.css">
+<script src="shell.js"></script>
+</head><body>
+<div class="app" data-screen-label="Reader · §6">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader">
+    <div class="topbar" id="topbar"></div>
+
+    <div class="eyebrow">Part III · Multi-head and beyond</div>
+    <h1 class="hero">The Transformer block, <em>wired up.</em></h1>
+    <p class="lede">We have every ingredient. Now we assemble. A Transformer block is a piece of circuitry with one attention sub-layer, one feed-forward sub-layer, two residuals, and two layer-norms — no more, no less.</p>
+
+    <p>Click any wire in the diagram. The right-hand panel explains what flows through it, what shape it has, and what the math does at that point.</p>
+
+    <h2>The block</h2>
+
+    <div class="fig">
+      <div class="fig__title">Figure 7 · encoder-layer data-flow</div>
+      <div class="fig__body" style="display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:stretch">
+        <svg id="block-svg" viewBox="0 0 520 560" style="width:100%"></svg>
+        <div id="wire-info" style="padding:18px;background:var(--paper);border:1px solid var(--paper-3);border-radius:6px;font-size:13px;line-height:1.55">
+          <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-3);margin-bottom:6px">click any wire</div>
+          <div style="font-family:var(--font-display);font-style:italic;font-weight:600;font-size:16px;color:var(--ink);margin-bottom:8px">Start with the input</div>
+          <div style="color:var(--ink-2)">Every wire carries a tensor of shape <em class="math">[n, d<sub>model</sub>]</em> — <em>n</em> tokens, each represented by a <em>d<sub>model</sub></em>-wide vector. That shape is preserved through the entire block, which is why you can stack them.</div>
+        </div>
+      </div>
+      <div class="fig__cap"><b>Fig 7</b> — the only operation that mixes across tokens is multi-head attention. The FFN applies position-wise; both residuals skip exactly one sub-layer.</div>
+    </div>
+
+    <h2>The equation</h2>
+    <p>Written out, one encoder layer is:</p>
+    <p style="text-align:center;font-family:var(--font-display);font-style:italic;font-size:18px;color:var(--ink);margin:20px 0;line-height:1.9">
+      z = LayerNorm(x + MultiHead(x, x, x))<br>
+      y = LayerNorm(z + FFN(z))
+    </p>
+    <p>The <strong>residuals</strong> let gradient flow unblocked past every sub-layer; <strong>layer-norm</strong> keeps activations in a well-conditioned range; <strong>multi-head attention</strong> mixes information across tokens; the <strong>FFN</strong> (two linears with a ReLU between them) does the position-wise computation. Everything else in a full model — decoder, cross-attention, masking — is a variation on these four parts.</p>
+
+    <div class="callout"><strong>One sentence to remember —</strong> one block mixes across tokens once and across features once, then hands the result to the next block unchanged in shape.</div>
+
+    <h2>What you've built</h2>
+    <p>From a single dot product you now have: similarity → softmax → scaled dot-product attention → multi-head attention → positional encoding → the full block. Every Transformer in use today — the ones writing code, translating languages, folding proteins — is a stack of these blocks with variations on what's masked and what's cross-attended. The math is no harder than what you just read.</p>
+
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
+
+<script>
+AttendShell.mount({ chapter: "Chapter 6", section: "§6 The full Transformer block", progress: 100, activeId: "§6" });
+
+(() => {
+  const INFO = {
+    "in":    { title: "Input embeddings + PE", shape: "[n, d_model]", body: "Token embeddings with sinusoidal positional encodings already added. Every downstream wire in this block will have the same shape — that's what lets us stack layers." },
+    "q-split":  { title: "Residual branch split", shape: "[n, d_model]", body: "The input fans out: one copy goes into the attention sub-layer, the other skips around it. No weights here, just a tee." },
+    "attn":  { title: "Multi-head attention", shape: "[n, d_model]", body: "Eight heads run in parallel (§4.4), each computing scaled dot-product attention on its own slice. Concatenated, projected by W^O, and returned at the original shape." },
+    "add1":  { title: "First residual add", shape: "[n, d_model]", body: "x + MultiHead(x). Adding the pre-attention input back in lets gradients flow past the attention block during training, which is the difference between a 6-layer network and a 96-layer one." },
+    "ln1":   { title: "Layer norm #1", shape: "[n, d_model]", body: "Normalizes each token's feature vector to zero mean and unit variance, then applies a learned scale and shift. Keeps activations well-conditioned for the next sub-layer." },
+    "ffn-split": { title: "Residual branch split", shape: "[n, d_model]", body: "Same story as before: the normalized value fans out into FFN and around it." },
+    "ffn":   { title: "Feed-forward network", shape: "[n, d_model]", body: "Applied token-wise (independently per position). Two linears with a ReLU between: W_1 expands to d_ff ≈ 4·d_model, ReLU, W_2 projects back. This is where most of a Transformer's parameters live." },
+    "add2":  { title: "Second residual add", shape: "[n, d_model]", body: "z + FFN(z). Second skip connection, same role as the first: a gradient highway." },
+    "ln2":   { title: "Layer norm #2", shape: "[n, d_model]", body: "Final normalization before handing off to the next block." },
+    "out":   { title: "Output to next layer", shape: "[n, d_model]", body: "Shape preserved. Stack another block on top of this one and repeat N times — the paper uses N = 6." },
+  };
+
+  const BOX = (x, y, w, h, label, sub, wireId) =>
+    `<g class="wire" data-w="${wireId}" style="cursor:pointer">
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="var(--paper-2)" stroke="var(--paper-edge)" stroke-width="1.5"/>
+      <text x="${x+w/2}" y="${y+h/2-3}" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-style="italic" font-weight="600" font-size="13">${label}</text>
+      <text x="${x+w/2}" y="${y+h/2+13}" text-anchor="middle" fill="var(--ink-3)" font-family="var(--font-mono)" font-size="9">${sub}</text>
+    </g>`;
+
+  const WIRE = (x1, y1, x2, y2, id) =>
+    `<line class="wire" data-w="${id}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--ink-3)" stroke-width="2.5" style="cursor:pointer"/>`;
+
+  const svg = document.getElementById('block-svg');
+  svg.innerHTML = `
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/>
+      </marker>
+    </defs>
+
+    ${BOX(170, 20, 180, 44, 'Input + PE', '[n, d_model]', 'in')}
+
+    ${WIRE(260, 64, 260, 100, 'q-split')}
+    <circle cx="260" cy="100" r="4" fill="var(--ink-3)"/>
+    ${WIRE(260, 100, 420, 100, 'q-split')}
+    ${WIRE(420, 100, 420, 240, 'q-split')}
+    ${WIRE(260, 100, 260, 140, 'q-split')}
+
+    ${BOX(170, 140, 180, 44, 'Multi-head attention', '§4', 'attn')}
+
+    ${WIRE(260, 184, 260, 240, 'attn')}
+    <circle cx="260" cy="240" r="10" fill="var(--paper)" stroke="var(--query)" stroke-width="2"/>
+    <text x="260" y="244" text-anchor="middle" fill="var(--query)" font-family="var(--font-display)" font-style="italic" font-weight="700" font-size="14">+</text>
+    ${WIRE(420, 240, 274, 240, 'add1')}
+    ${WIRE(260, 250, 260, 280, 'add1')}
+
+    ${BOX(170, 280, 180, 36, 'Layer norm', '[n, d_model]', 'ln1')}
+
+    ${WIRE(260, 316, 260, 340, 'ln1')}
+    <circle cx="260" cy="340" r="4" fill="var(--ink-3)"/>
+    ${WIRE(260, 340, 420, 340, 'ffn-split')}
+    ${WIRE(420, 340, 420, 440, 'ffn-split')}
+    ${WIRE(260, 340, 260, 370, 'ffn-split')}
+
+    ${BOX(170, 370, 180, 44, 'Feed-forward', 'W₁ · ReLU · W₂', 'ffn')}
+
+    ${WIRE(260, 414, 260, 440, 'ffn')}
+    <circle cx="260" cy="440" r="10" fill="var(--paper)" stroke="var(--query)" stroke-width="2"/>
+    <text x="260" y="444" text-anchor="middle" fill="var(--query)" font-family="var(--font-display)" font-style="italic" font-weight="700" font-size="14">+</text>
+    ${WIRE(420, 440, 274, 440, 'add2')}
+    ${WIRE(260, 450, 260, 480, 'add2')}
+
+    ${BOX(170, 480, 180, 36, 'Layer norm', '[n, d_model]', 'ln2')}
+
+    ${WIRE(260, 516, 260, 548, 'out')}
+    <text x="260" y="556" text-anchor="middle" fill="var(--ink-3)" font-family="var(--font-mono)" font-size="10">→ next block</text>
+  `;
+
+  const info = document.getElementById('wire-info');
+  const show = (id) => {
+    const d = INFO[id];
+    if (!d) return;
+    info.innerHTML = `
+      <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--query);margin-bottom:6px">${d.shape}</div>
+      <div style="font-family:var(--font-display);font-style:italic;font-weight:600;font-size:16px;color:var(--ink);margin-bottom:8px">${d.title}</div>
+      <div style="color:var(--ink-2)">${d.body}</div>
+    `;
+    svg.querySelectorAll('.wire').forEach(el => {
+      const active = el.dataset.w === id;
+      if (el.tagName === 'line') {
+        el.setAttribute('stroke', active ? 'var(--query)' : 'var(--ink-3)');
+        el.setAttribute('stroke-width', active ? '3.5' : '2.5');
+      } else {
+        el.querySelector('rect').setAttribute('stroke', active ? 'var(--query)' : 'var(--paper-edge)');
+        el.querySelector('rect').setAttribute('stroke-width', active ? '2.5' : '1.5');
+      }
+    });
+  };
+
+  svg.querySelectorAll('.wire').forEach(el => {
+    el.addEventListener('click', () => show(el.dataset.w));
+    el.addEventListener('mouseenter', () => show(el.dataset.w));
+  });
+})();
+</script>
+</body></html>

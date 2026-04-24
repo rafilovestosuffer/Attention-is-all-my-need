@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .grid { grid-template-columns: repeat(3, 1fr); }
+  .slot { border-radius: 8px; padding: 14px 16px; min-height: 78px; display: flex; flex-direction: column; justify-content: space-between; }
+  .name { font-family: var(--font-sans); font-weight: 600; font-size: 13px; }
+  .hex  { font-family: var(--font-mono); font-size: 11px; opacity: .8; }
+</style>
+</head><body>
+<div class="card">
+  <div class="grid">
+    <div class="slot" style="background: var(--ok-soft); color: var(--ok);">
+      <span class="name">— ok</span>
+      <span class="hex">#2F7D4F · on #D4E7D9</span>
+    </div>
+    <div class="slot" style="background: var(--warn-soft); color: var(--warn);">
+      <span class="name">— warn</span>
+      <span class="hex">#A86A00 · on #F2E3BA</span>
+    </div>
+    <div class="slot" style="background: var(--err-soft); color: var(--err);">
+      <span class="name">— err</span>
+      <span class="hex">#9A2A2A · on #EBCDCD</span>
+    </div>
+  </div>
+</div>
+</body></html>

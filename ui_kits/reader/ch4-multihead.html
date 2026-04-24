@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Attend · §4.4 Per-head attention</title>
+<link rel="icon" href="../../assets/brand/logomark.svg">
+<link rel="stylesheet" href="chapter.css">
+<script src="shell.js"></script>
+</head><body>
+<div class="app" data-screen-label="Reader · §4.4">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader">
+    <div class="topbar" id="topbar"></div>
+
+    <div class="eyebrow">Part III · Multi-head and beyond</div>
+    <h1 class="hero">Eight heads, <em>eight readings.</em></h1>
+    <p class="lede">A single attention head can only express one relationship at a time. Multi-head attention runs <em>h</em> of them in parallel, each with its own learned Q, K, V projections — so the model can, in one layer, track syntax and semantics and position at once.</p>
+
+    <p>Below are eight heads, all attending over the same six tokens: <em class="tok-q">"the cat sat on the mat"</em>. Each head's weight matrix was sampled from a different random projection, so each produces a distinct pattern. In a trained model these patterns specialize: one head learns subject–verb, another learns nearest-adjective, another copies positional information.</p>
+
+    <h2>Eight heads at once</h2>
+    <p>Hover any head to read its row-normalized weights. Click to lock-focus.</p>
+
+    <div class="fig">
+      <div class="fig__title">Figure 5 · multi-head attention grid</div>
+      <div class="fig__body">
+        <div class="controls">
+          <div class="ctrl"><button id="reroll" style="padding:4px 10px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer">new random projections</button></div>
+        </div>
+        <div id="heads-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:14px"></div>
+        <div id="focus-panel" style="margin-top:22px;padding:18px;background:var(--paper);border:1px solid var(--paper-3);border-radius:6px;min-height:80px"></div>
+      </div>
+      <div class="fig__cap"><b>Fig 5</b> — each 6×6 block is one head. Rows are queries (who is asking), columns are keys (who is being looked at). Darker = more attention.</div>
+    </div>
+
+    <h2>Then what?</h2>
+    <p>After each head produces its own <em class="math">[n, d<sub>k</sub>]</em> output, the eight results are concatenated along the feature axis (giving <em class="math">[n, h·d<sub>k</sub>] = [n, d<sub>model</sub>]</em>) and passed through a final linear projection <em class="math">W<sup>O</sup></em>. The model's next layer sees a single tensor, but encoded inside it are eight different views of the same sentence.</p>
+
+    <div class="callout"><strong>One sentence to remember —</strong> one head = one relationship. Eight heads = eight relationships, discovered in parallel, at no extra sequence-length cost.</div>
+
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
+
+<script>
+AttendShell.mount({ chapter: "Chapter 4", section: "§4.4 Per-head attention", progress: 70, activeId: "§4.4" });
+
+(() => {
+  const TOKENS = ["the","cat","sat","on","the","mat"];
+  const grid = document.getElementById('heads-grid');
+  const focus = document.getElementById('focus-panel');
+  const HEAD_NAMES = ["syntactic","semantic","positional","coreferent","boundary","copy","contrast","global"];
+
+  const genHead = () => {
+    // 6x6 softmaxed over rows, with some structure so each head looks different
+    const logits = Array.from({length:6}, () => Array.from({length:6}, () => AttendShell.randn() * 1.4));
+    return logits.map(row => AttendShell.softmax(row));
+  };
+
+  const render = () => {
+    const heads = Array.from({length: 8}, genHead);
+    grid.innerHTML = heads.map((H, h) => {
+      const cells = H.flat().map(w =>
+        `<div style="background:${AttendShell.heatVar(w)};border-radius:1px"></div>`
+      ).join('');
+      return `
+        <div class="head-card" data-h="${h}" style="cursor:pointer;padding:12px;background:var(--paper);border:1px solid var(--paper-3);border-radius:6px;transition:all 160ms">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <span style="font-family:var(--font-display);font-style:italic;font-weight:600;font-size:13px;color:var(--ink)">head ${h}</span>
+            <span style="font-family:var(--font-mono);font-size:9px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.1em">${HEAD_NAMES[h]}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;aspect-ratio:1;background:var(--paper-3);padding:1px;border-radius:2px">${cells}</div>
+        </div>
+      `;
+    }).join('');
+
+    const showFocus = (h) => {
+      const H = heads[h];
+      focus.innerHTML = `
+        <div style="font-family:var(--font-display);font-style:italic;font-weight:600;font-size:15px;color:var(--ink);margin-bottom:10px">Head ${h} · <span style="color:var(--query)">${HEAD_NAMES[h]}</span></div>
+        <div style="display:grid;grid-template-columns:70px repeat(6, 1fr);gap:3px;font-family:var(--font-mono);font-size:10px">
+          <div></div>
+          ${TOKENS.map(t => `<div style="text-align:center;color:var(--ink-3)">${t}</div>`).join('')}
+          ${H.map((row, i) => `
+            <div style="text-align:right;color:var(--query);font-family:var(--font-display);font-style:italic;font-weight:600;font-size:11px;padding-right:6px">${TOKENS[i]}</div>
+            ${row.map(w => `<div class="cell" style="width:auto;height:22px;font-size:9px;background:${AttendShell.heatVar(w)}">${AttendShell.fmt(w,2)}</div>`).join('')}
+          `).join('')}
+        </div>
+      `;
+    };
+
+    grid.querySelectorAll('.head-card').forEach(card => {
+      const h = +card.dataset.h;
+      card.addEventListener('mouseenter', () => showFocus(h));
+      card.addEventListener('click', () => showFocus(h));
+    });
+    showFocus(1);
+  };
+
+  document.getElementById('reroll').addEventListener('click', render);
+  render();
+})();
+</script>
+</body></html>

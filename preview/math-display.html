@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .math { font-family: var(--font-display); font-size: 26px; color: var(--ink); padding: 10px 0; text-align: center; letter-spacing: -0.01em; }
+  .math .q { color: var(--query); font-weight: 600; font-style: italic; }
+  .math .k { color: var(--key);   font-weight: 600; font-style: italic; }
+  .math .v { color: var(--value); font-weight: 600; font-style: italic; }
+  .math em  { font-style: italic; font-weight: 500; }
+  .eqn { display: flex; align-items: baseline; justify-content: center; gap: 16px; }
+  .num { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; }
+  .divider { margin: 10px 0; }
+</style>
+</head><body>
+<div class="card">
+  <div class="eqn">
+    <div class="math">Attention(<span class="q">Q</span>, <span class="k">K</span>, <span class="v">V</span>) = softmax<span style="font-size:18px">(</span><span class="q">Q</span><span class="k">K</span><sup>ᵀ</sup> / √<em>d</em><sub>k</sub><span style="font-size:18px">)</span><span class="v">V</span></div>
+    <span class="num">Eq. 1</span>
+  </div>
+  <div class="divider"></div>
+  <div class="eqn">
+    <div class="math">MultiHead(<span class="q">Q</span>,<span class="k">K</span>,<span class="v">V</span>) = Concat(head<sub>1</sub>…head<sub>h</sub>)<em>W</em><sup>O</sup></div>
+    <span class="num">Eq. 2</span>
+  </div>
+</div>
+</body></html>

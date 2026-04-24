@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .row { display: flex; gap: 14px; align-items: flex-end; }
+  .box { background: var(--paper); border: 1px solid var(--paper-3); width: 120px; height: 90px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .tag { margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-align: center; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+</style>
+</head><body>
+<div class="card" style="background: var(--paper-2);">
+  <div class="row">
+    <div class="col">
+      <div class="box" style="box-shadow: var(--shadow-1)">shadow-1</div>
+      <div class="tag">resting chrome</div>
+    </div>
+    <div class="col">
+      <div class="box" style="box-shadow: var(--shadow-2)">shadow-2</div>
+      <div class="tag">hover / cards</div>
+    </div>
+    <div class="col">
+      <div class="box" style="box-shadow: var(--shadow-3)">shadow-3</div>
+      <div class="tag">modals · tooltips</div>
+    </div>
+    <div class="col">
+      <div class="box" style="box-shadow: var(--shadow-inset); background: var(--paper-2);">inset</div>
+      <div class="tag">pressed · inputs</div>
+    </div>
+  </div>
+</div>
+</body></html>

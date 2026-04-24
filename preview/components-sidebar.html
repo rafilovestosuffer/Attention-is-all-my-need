@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .side { background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 10px; padding: 16px; font-family: var(--font-sans); font-size: 13px; }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 18px; color: var(--ink); margin-bottom: 14px; }
+  .brand img { width: 22px; height: 22px; }
+  .chap { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin: 12px 0 4px; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { padding: 5px 8px; border-radius: 4px; color: var(--ink-2); display: flex; justify-content: space-between; }
+  li.done { color: var(--ink-3); }
+  li.now  { background: var(--paper); color: var(--ink); font-weight: 600; }
+  li .n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); }
+  li.done .n::before { content: "✓ "; color: var(--ok); }
+</style>
+</head><body>
+<div class="card">
+  <div class="side">
+    <div class="brand"><img src="../assets/brand/logomark.svg" alt=""> Attend</div>
+    <div class="chap">Chapter 4 · Multi-head attention</div>
+    <ul>
+      <li class="done"><span>Intuition</span><span class="n">4.1</span></li>
+      <li class="done"><span>Shapes and splits</span><span class="n">4.2</span></li>
+      <li class="now"><span>Splitting Q, K, V</span><span class="n">4.3</span></li>
+      <li><span>Per-head attention</span><span class="n">4.4</span></li>
+      <li><span>Recombining heads</span><span class="n">4.5</span></li>
+      <li><span>Exercises</span><span class="n">4.6</span></li>
+    </ul>
+  </div>
+</div>
+</body></html>

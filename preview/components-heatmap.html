@@ -1,0 +1,40 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .wrap { display: flex; gap: 24px; align-items: center; }
+  .heatmap { display: grid; grid-template-columns: repeat(6, 32px); grid-template-rows: repeat(6, 32px); gap: 2px; }
+  .cell { border-radius: 2px; }
+  .legend { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); line-height: 1.6; }
+</style>
+</head><body>
+<div class="card">
+  <div class="wrap">
+    <div class="heatmap" id="hm"></div>
+    <div class="legend">
+      Attention heatmap · 6×6<br>
+      row = query · col = key<br>
+      fill = softmax weight<br>
+      uses --heat-0 … --heat-5
+    </div>
+  </div>
+</div>
+<script>
+  const weights = [
+    [0.8,0.1,0.05,0.02,0.02,0.01],
+    [0.2,0.55,0.15,0.05,0.03,0.02],
+    [0.05,0.15,0.6,0.12,0.05,0.03],
+    [0.04,0.08,0.2,0.5,0.13,0.05],
+    [0.03,0.05,0.12,0.18,0.52,0.1],
+    [0.02,0.03,0.05,0.1,0.25,0.55]
+  ];
+  const steps = ['--heat-0','--heat-1','--heat-2','--heat-3','--heat-4','--heat-5'];
+  const hm = document.getElementById('hm');
+  weights.flat().forEach(w => {
+    const i = Math.min(5, Math.floor(w * 6));
+    const d = document.createElement('div');
+    d.className = 'cell';
+    d.style.background = `var(${steps[i]})`;
+    hm.appendChild(d);
+  });
+</script>
+</body></html>

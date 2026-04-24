@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Attend · §3.2 Why we scale by √dₖ</title>
+<link rel="icon" href="../../assets/brand/logomark.svg">
+<link rel="stylesheet" href="chapter.css">
+<script src="shell.js"></script>
+</head><body>
+<div class="app" data-screen-label="Reader · §3.2">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader">
+    <div class="topbar" id="topbar"></div>
+
+    <div class="eyebrow">Part II · Scaled dot-product attention</div>
+    <h1 class="hero">Why we scale <em>by √d<sub>k</sub>.</em></h1>
+    <p class="lede">In the paper, one tiny divisor prevents softmax from collapsing. Raise the dimension, watch the attention pattern sharpen into a single spike, and the fix becomes obvious.</p>
+
+    <p>If <em class="tok-q">q</em> and <em class="tok-k">k</em> are vectors of length <em class="math">d<sub>k</sub></em> with independent, unit-variance entries, the dot product <em class="math">q · k</em> has <strong>variance <em>d<sub>k</sub></em></strong>. Grow <em class="math">d<sub>k</sub></em> from 4 to 64 to 512, and the raw scores spread wider and wider — feeding softmax a distribution it can only respond to with a near-one-hot spike.</p>
+
+    <h2>Live experiment</h2>
+    <p>Below we sample 6 queries × 6 keys with i.i.d. entries and compute the attention weights of the first query. Slide <em class="math">d<sub>k</sub></em> up and toggle the √d<sub>k</sub> divisor on and off. Watch what happens without it.</p>
+
+    <div class="fig">
+      <div class="fig__title">Figure 4 · variance vs scaling</div>
+      <div class="fig__body">
+        <div class="controls">
+          <div class="ctrl"><span>d<sub>k</sub></span>
+            <input id="dk" type="range" min="2" max="256" step="1" value="8">
+            <span class="val" id="dkval">8</span>
+          </div>
+          <div class="ctrl"><input type="checkbox" id="scaled" checked> <label for="scaled">divide by √d<sub>k</sub></label></div>
+          <div class="ctrl"><button id="resample" style="padding:4px 10px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer">resample</button></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:12px">
+          <div>
+            <div class="matrix__label" style="color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-family:var(--font-sans);font-weight:600">Raw scores (row 0)</div>
+            <div id="raw" style="display:flex;gap:3px;margin-top:8px"></div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:8px">std = <span id="stdval">—</span></div>
+          </div>
+          <div>
+            <div class="matrix__label" style="color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-family:var(--font-sans);font-weight:600">Softmax weights</div>
+            <div id="soft" style="display:flex;gap:3px;margin-top:8px"></div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:8px">max = <span id="maxw">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="fig__cap"><b>Fig 4</b> — without the divisor, softmax collapses to a near-one-hot as d<sub>k</sub> grows. With it, the spread is held constant regardless of dimension.</div>
+    </div>
+
+    <h2>The math</h2>
+    <p>For independent unit-variance <em class="math">q<sub>i</sub>, k<sub>i</sub></em>:</p>
+    <p style="text-align:center;font-family:var(--font-display);font-style:italic;font-size:20px;color:var(--ink);margin:20px 0">
+      Var(q · k) = Σ Var(q<sub>i</sub>k<sub>i</sub>) = d<sub>k</sub>
+    </p>
+    <p>Dividing by <em class="math">√d<sub>k</sub></em> rescales that variance back to 1. Softmax inputs stay in a regime where gradients flow — which is exactly why the paper includes the divisor even though nothing else in the expression demands it.</p>
+
+    <div class="callout"><strong>One sentence to remember —</strong> √d<sub>k</sub> keeps softmax's temperature constant as the model gets wider.</div>
+
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
+
+<script>
+AttendShell.mount({ chapter: "Chapter 3", section: "§3.2 Why we scale by √dₖ", progress: 42, activeId: "§3.2" });
+
+(() => {
+  const dkInp = document.getElementById('dk');
+  const scaledChk = document.getElementById('scaled');
+  let samples = null;
+
+  const sample = (dk) => {
+    const q = Array.from({length: dk}, () => AttendShell.randn());
+    const K = Array.from({length: 6}, () => Array.from({length: dk}, () => AttendShell.randn()));
+    return { q, K };
+  };
+
+  const render = () => {
+    const dk = +dkInp.value;
+    document.getElementById('dkval').textContent = dk;
+    if (!samples || samples.q.length !== dk) samples = sample(dk);
+    const { q, K } = samples;
+    const raw = K.map(k => AttendShell.dot(q, k));
+    const scaled = scaledChk.checked ? raw.map(x => x / Math.sqrt(dk)) : raw;
+    const ws = AttendShell.softmax(scaled, 1);
+
+    const mean = raw.reduce((a,b)=>a+b,0) / raw.length;
+    const std = Math.sqrt(raw.reduce((a,b)=>a+(b-mean)**2,0) / raw.length);
+    document.getElementById('stdval').textContent = AttendShell.fmt(std);
+    document.getElementById('maxw').textContent = AttendShell.fmt(Math.max(...ws), 3);
+
+    const maxAbs = Math.max(...raw.map(Math.abs), 1);
+    document.getElementById('raw').innerHTML = raw.map(s => {
+      const norm = (s + maxAbs) / (2 * maxAbs);
+      return `<div class="cell" style="width:54px;height:54px;font-size:11px;background:${AttendShell.heatVar(norm)}">${AttendShell.fmt(s,1)}</div>`;
+    }).join('');
+    document.getElementById('soft').innerHTML = ws.map(w =>
+      `<div class="cell" style="width:54px;height:54px;font-size:11px;background:${AttendShell.heatVar(w)}">${AttendShell.fmt(w,3)}</div>`
+    ).join('');
+  };
+
+  dkInp.addEventListener('input', render);
+  scaledChk.addEventListener('change', render);
+  document.getElementById('resample').addEventListener('click', () => { samples = null; render(); });
+  render();
+})();
+</script>
+</body></html>
