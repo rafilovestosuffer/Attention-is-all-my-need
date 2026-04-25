@@ -4,68 +4,29 @@
 const { useState } = React;
 
 /* ------------------------------------------------------------------ Sidebar */
-function Sidebar({ current = "4.3" }) {
+function Sidebar() {
   const chapters = [
-    { n: "1", title: "A vector, a dot product",     href: "ch1-dot-product.html", subs: [] },
-    { n: "2", title: "From similarity to attention", href: "ch2-softmax.html",    subs: [
-      { n: "2.1", title: "The scoring function", done: true },
-      { n: "2.2", title: "Softmax, and why",     done: true },
-    ]},
-    { n: "3", title: "Scaled dot-product attention", href: "ch3-scale.html", subs: [
-      { n: "3.1", title: "Q, K, V — three roles", done: true },
-      { n: "3.2", title: "Why we scale by √dₖ",   done: true },
-      { n: "3.3", title: "A worked example",       done: true },
-    ]},
-    { n: "4", title: "Multi-head attention", href: "index.html", active: true, subs: [
-      { n: "4.1", title: "Intuition",           done: true },
-      { n: "4.2", title: "Shapes and splits",   done: true },
-      { n: "4.3", title: "Splitting Q, K, V",   now:  true, href: "index.html" },
-      { n: "4.4", title: "Per-head attention",  href: "ch4-multihead.html" },
-      { n: "4.5", title: "Recombining heads" },
-      { n: "4.6", title: "Exercises" },
-    ]},
-    { n: "5", title: "Positional encodings",     href: "ch5-positional.html", subs: [] },
-    { n: "6", title: "The full Transformer block", href: "ch6-transformer.html", subs: [] },
+    { id: "§1", href: "ch1-dot-product.html", title: "A vector, a dot product" },
+    { id: "§2", href: "ch2-softmax.html",     title: "From similarity to attention" },
+    { id: "§3", href: "ch3-scale.html",       title: "Why we scale by √dₖ" },
+    { id: "§4", href: "index.html",           title: "Splitting Q, K, V", active: true },
+    { id: "§5", href: "ch4-multihead.html",   title: "Per-head attention" },
+    { id: "§6", href: "ch5-positional.html",  title: "Positional encodings" },
+    { id: "§7", href: "ch6-transformer.html", title: "The full Transformer block" },
   ];
   return (
     <aside className="sidebar">
       <a className="brand" href="../../index.html">
         <img src="../../assets/brand/logomark.svg" alt="" width="24" height="24" />
-        <span>Attend</span>
+        {" "}Attend
       </a>
-      <div className="sidebar__progress">
-        <div className="sidebar__progress-meta">
-          <span>Your progress</span><span>38%</span>
-        </div>
-        <div className="track"><i style={{ width: "38%" }} /></div>
-      </div>
-      <nav className="toc">
+      <div className="toc">
         {chapters.map(c => (
-          <div key={c.n} className={"toc__chap" + (c.active ? " is-active" : "")}>
-            <a className="toc__head" href={c.href || "#"} style={{ textDecoration: "none", color: "inherit", display: "flex", gap: 10 }}>
-              <span className="toc__n">{c.n}</span>
-              <span className="toc__title">{c.title}</span>
-            </a>
-            {c.subs.length > 0 && c.active && (
-              <ul className="toc__subs">
-                {c.subs.map(s => (
-                  <li key={s.n} className={s.now ? "is-now" : s.done ? "is-done" : ""}>
-                    {s.href
-                      ? <a href={s.href} style={{ textDecoration: "none", color: "inherit", display: "flex", gap: 8 }}>
-                          <span className="toc__n">{s.n}</span>
-                          <span>{s.title}</span>
-                        </a>
-                      : <><span className="toc__n">{s.n}</span><span>{s.title}</span></>
-                    }
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <a key={c.id} className={c.active ? "active" : ""} href={c.href}>
+            <span className="n">{c.id}</span>
+            <span>{c.title}</span>
+          </a>
         ))}
-      </nav>
-      <div className="sidebar__foot">
-        <kbd>j</kbd> next · <kbd>k</kbd> prev · <kbd>/</kbd> search
       </div>
     </aside>
   );
