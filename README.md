@@ -1,6 +1,131 @@
-# Attend — Design System
+# Attend — Interactive Transformer Reader
 
-A scholarly-but-warm design system for **Attend**, an interactive learning tool that teaches the attention mechanism from the ground up, built around the paper *Attention Is All You Need* (Vaswani et al., 2017).
+> A hand-built design system and interactive textbook that teaches the attention mechanism from scratch. Every equation on screen is computed live — no static diagrams, no hand-waving.
+
+**[Live Demo →](https://rafilovestosuffer.github.io/Attention-is-all-my-need/ui_kits/reader/)**
+
+![Reader preview](assets/brand/wordmark.svg)
+
+---
+
+## What It Is
+
+*Attend* is two things at once: a **complete design system** and a **chapter-by-chapter interactive reader** built on top of it. It takes a reader from "what is a dot product?" to a fully-wired multi-head attention playground — with every matrix, every softmax curve, and every weight heatmap recomputing live as you move a slider.
+
+Think Distill.pub, but built from scratch with a custom component library.
+
+---
+
+## The Reader — 7 Chapters
+
+| § | Topic |
+|---|-------|
+| §1 | A vector, a dot product — the atom of every Transformer |
+| §2 | From similarity to attention — softmax as a soft lookup |
+| §3 | Scaled dot-product attention — why we divide by √dₖ (interactive) |
+| §4 | Splitting Q, K, V — fully wired attention playground |
+| §5 | Multi-head attention — eight heads, eight simultaneous readings |
+| §6 | Positional encodings — giving the model a sense of order |
+| §7 | The full Transformer block — everything assembled |
+
+---
+
+## The Playground (§4)
+
+The centrepiece is a **live scaled dot-product attention engine** — zero external math libraries, all computed in the browser:
+
+- Real `softmax(QKᵀ / √dₖ)V` over a 6-token sentence, every value shown
+- **Temperature slider** — watch softmax sharpen or spread in real time
+- **√dₖ toggle** — see exactly what breaks when you remove it
+- **Hover-to-highlight** — hover any query row, its attention weights light up the heatmap and highlight the contributing value rows
+- **Step-through mode** — `Q · Kᵀ → scale → softmax → weighted sum`, one frame at a time
+- **Simulated scratchpad cells** — NumPy-flavoured code that shows tensor shapes at each stage
+
+---
+
+## Design System
+
+The UI rests on a complete, hand-authored token system.
+
+**Semantic colour — 3 roles borrowed directly from the math:**
+| Token | Colour | Meaning |
+|-------|--------|---------|
+| `--query` | Burnt orange `#C2410C` | *The question* |
+| `--key` | Emerald teal `#0E7C6B` | *The index* |
+| `--value` | Aubergine `#7A4BA8` | *The content* |
+
+These three colours never decorate freely — they always mean Q, K, V. A 6-stop heat scale derived from query-orange drives every attention-weight heatmap.
+
+**Typography — 3-face scholarly stack:**
+- **Source Serif 4** (variable, optical-sizing) — headings, display math, emphasis
+- **Inter** — UI chrome and body prose
+- **JetBrains Mono** — code, tensor shapes, keyboard shortcuts, inline math tokens
+
+**Components** — Sidebar, sticky topbar, callout, figure, math block, scratchpad, heatmap, progress track, badges, buttons, inputs — all documented live in `/preview` (24 component pages).
+
+---
+
+## Architecture
+
+```
+attend/
+├── colors_and_type.css           # All design tokens — single source of truth
+├── assets/brand/                 # Logomark, wordmark, softmax curve (SVG)
+├── preview/                      # Component kitchen sink — 24 pages
+└── ui_kits/reader/
+    ├── shell.js                  # Sidebar + topbar renderer (vanilla JS, shared)
+    ├── chapter.css               # Reader layout + navigation styles
+    ├── reader.css                # Playground component styles
+    ├── attention-math.js         # Pure-JS linear algebra — matmul, softmax, scale
+    ├── components.jsx            # React components — Sidebar, Callout, MathBlock…
+    ├── AttentionPlayground.jsx   # The interactive attention engine
+    ├── tweaks-panel.jsx          # Floating live-tweak panel (prototype tool)
+    └── ch1 – ch6 + index.html   # Seven chapter pages
+```
+
+**Key decisions:**
+- `attention-math.js` has **zero runtime dependencies** — every matrix operation is hand-written so the math is readable and auditable
+- Tokens in one CSS file, imported everywhere — no preprocessor, no build step
+- Babel standalone for JSX — the dev loop is "save and refresh"
+- `shell.js` (vanilla) handles navigation on six pages; React only where the interactive state demands it
+
+---
+
+## Skills Demonstrated
+
+| Area | Detail |
+|------|--------|
+| **Linear algebra in JS** | `matmul`, `transpose`, `softmax`, `scaled dot-product` — from scratch |
+| **React hooks** | `useState`, `useMemo`, `useRef`, `useEffect` in a real-time math UI |
+| **CSS design tokens** | Full semantic system — color, type, spacing, radii, shadow, motion |
+| **CSS Grid & sticky layout** | Two-column reader, sticky topbar, independently-scrolling sidebar |
+| **Data visualisation** | Live 6×6 heatmap driven by matrix values updating on every slider tick |
+| **Component API design** | 10+ components with consistent, composable props |
+| **Typography** | Optical sizing, three-face scale, tabular numerals, dropcap variant |
+| **No build toolchain** | Ships as plain HTML/CSS/JS — clone and open |
+
+---
+
+## Run Locally
+
+```bash
+git clone https://github.com/rafilovestosuffer/Attention-is-all-my-need.git
+
+# No install, no build — just open the file:
+open "ui_kits/reader/ch1-dot-product.html"
+```
+
+Start at §1 and follow the in-page navigation forward. Or jump straight to the playground at `ui_kits/reader/index.html`.
+
+---
+
+## Why
+
+Most attention explainers are either too hand-wavy (blog posts with static cartoons) or too terse (the paper itself). I wanted something where you could **grab a slider and feel** what happens to softmax as `dₖ` grows — because that intuition is genuinely hard to get from an equation alone. The design system exists because the visuals needed to reinforce the math: query, key, and value each carry a consistent colour through every diagram, heatmap, and code snippet.
+
+---
+
+*Built by [Rafi](https://github.com/rafilovestosuffer) · Based on Vaswani et al., [Attention Is All You Need](https://arxiv.org/abs/1706.03762) (2017)*
 
 The tool takes a beginner from "what is a vector?" through "why softmax of QKᵀ / √dₖ?" all the way to multi-head, cross-attention, and modern variants — with step-by-step visualizations, hands-on matrix playgrounds, and readable math.
 
