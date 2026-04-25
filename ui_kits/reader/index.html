@@ -50,9 +50,9 @@
 </head>
 <body>
 <div class="app" data-screen-label="Reader · §4">
-  <div id="sidebar-root"></div>
+  <aside class="sidebar" id="sidebar"></aside>
   <main class="reader">
-    <div id="topbar-root"></div>
+    <div class="topbar" id="topbar"></div>
 
     <div id="intro-root"></div>
 
@@ -212,10 +212,7 @@
       );
     }
 
-    createRoot(document.getElementById('sidebar-root')).render(<Sidebar />);
-    createRoot(document.getElementById('topbar-root')).render(
-      <TopBar chapter="Chapter 4" section="§4 Splitting Q, K, V" progress={57} />
-    );
+    AttendShell.mount({ chapter: "Chapter 4", section: "§4 Splitting Q, K, V", progress: 57, activeId: "§4" });
     createRoot(document.getElementById('intro-root')).render(<Intro />);
     createRoot(document.getElementById('playground-root')).render(<AttentionPlayground />);
 
