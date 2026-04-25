@@ -112,6 +112,9 @@
     .eb { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; }
     .tt { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 18px; }
   </style>
+  <script>
+    AttendShell.mount({ chapter: "Chapter 4", section: "§4 Splitting Q, K, V", progress: 57, activeId: "§4" });
+  </script>
   <script type="text/babel" src="components.jsx"></script>
   <script type="text/babel" src="AttentionPlayground.jsx"></script>
   <script type="text/babel" src="tweaks-panel.jsx"></script>
@@ -212,7 +215,6 @@
       );
     }
 
-    AttendShell.mount({ chapter: "Chapter 4", section: "§4 Splitting Q, K, V", progress: 57, activeId: "§4" });
     createRoot(document.getElementById('intro-root')).render(<Intro />);
     createRoot(document.getElementById('playground-root')).render(<AttentionPlayground />);
 
