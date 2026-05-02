@@ -4,29 +4,63 @@
 const { useState } = React;
 
 /* ------------------------------------------------------------------ Sidebar */
-function Sidebar() {
+function Sidebar({ current = "4.3" }) {
   const chapters = [
-    { id: "§1", href: "ch1-dot-product.html", title: "A vector, a dot product" },
-    { id: "§2", href: "ch2-softmax.html",     title: "From similarity to attention" },
-    { id: "§3", href: "ch3-scale.html",       title: "Why we scale by √dₖ" },
-    { id: "§4", href: "index.html",           title: "Splitting Q, K, V", active: true },
-    { id: "§5", href: "ch4-multihead.html",   title: "Per-head attention" },
-    { id: "§6", href: "ch5-positional.html",  title: "Positional encodings" },
-    { id: "§7", href: "ch6-transformer.html", title: "The full Transformer block" },
+    { n: "1", title: "A vector, a dot product", subs: [] },
+    { n: "2", title: "From similarity to attention", subs: [
+      { n: "2.1", title: "The scoring function", done: true },
+      { n: "2.2", title: "Softmax, and why", done: true },
+    ]},
+    { n: "3", title: "Scaled dot-product attention", subs: [
+      { n: "3.1", title: "Q, K, V — three roles", done: true },
+      { n: "3.2", title: "Why we scale by √dₖ",    done: true },
+      { n: "3.3", title: "A worked example",       done: true },
+    ]},
+    { n: "4", title: "Multi-head attention", active: true, subs: [
+      { n: "4.1", title: "Intuition",              done: true },
+      { n: "4.2", title: "Shapes and splits",      done: true },
+      { n: "4.3", title: "Splitting Q, K, V",      now:  true },
+      { n: "4.4", title: "Per-head attention" },
+      { n: "4.5", title: "Recombining heads" },
+      { n: "4.6", title: "Exercises" },
+    ]},
+    { n: "5", title: "Positional encodings", subs: [] },
+    { n: "6", title: "The full Transformer block", subs: [] },
   ];
   return (
     <aside className="sidebar">
-      <a className="brand" href="../../index.html">
+      <a className="brand" href="#">
         <img src="../../assets/brand/logomark.svg" alt="" width="24" height="24" />
-        {" "}Attend
+        <span>Attend</span>
       </a>
-      <div className="toc">
+      <div className="sidebar__progress">
+        <div className="sidebar__progress-meta">
+          <span>Your progress</span><span>38%</span>
+        </div>
+        <div className="track"><i style={{ width: "38%" }} /></div>
+      </div>
+      <nav className="toc">
         {chapters.map(c => (
-          <a key={c.id} className={c.active ? "active" : ""} href={c.href}>
-            <span className="n">{c.id}</span>
-            <span>{c.title}</span>
-          </a>
+          <div key={c.n} className={"toc__chap" + (c.active ? " is-active" : "")}>
+            <div className="toc__head">
+              <span className="toc__n">{c.n}</span>
+              <span className="toc__title">{c.title}</span>
+            </div>
+            {c.subs.length > 0 && c.active && (
+              <ul className="toc__subs">
+                {c.subs.map(s => (
+                  <li key={s.n} className={s.now ? "is-now" : s.done ? "is-done" : ""}>
+                    <span className="toc__n">{s.n}</span>
+                    <span>{s.title}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         ))}
+      </nav>
+      <div className="sidebar__foot">
+        <kbd>j</kbd> next · <kbd>k</kbd> prev · <kbd>/</kbd> search
       </div>
     </aside>
   );
