@@ -1,34 +1,27 @@
 <!doctype html>
-<html lang="en"><head>
-<meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Attend · §0 Prerequisites</title>
+<title>Attend · §0 What you need to start</title>
 <link rel="icon" href="../../assets/brand/logomark.svg">
 <link rel="stylesheet" href="chapter.css">
+<link rel="stylesheet" href="deep.css">
+<link rel="stylesheet" href="../../src/styles/dark.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 <script src="shell.js"></script>
+<script>document.documentElement.setAttribute('data-scheme','dark');</script>
 <style>
-  .checklist { list-style: none; padding: 0; margin: 20px 0; display: flex; flex-direction: column; gap: 10px; }
-  .checklist li { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 8px; font-size: 14px; line-height: 1.55; cursor: pointer; transition: all 180ms; user-select: none; }
-  .checklist li:hover { background: #fff; box-shadow: var(--shadow-1); }
-  .checklist li.done { opacity: 0.55; }
-  .checklist li.done .chk { background: var(--ok); border-color: var(--ok); color: #fff; }
-  .chk { width: 22px; height: 22px; min-width: 22px; border-radius: 50%; border: 2px solid var(--paper-edge); display: flex; align-items: center; justify-content: center; font-size: 12px; font-family: var(--font-mono); transition: all 180ms; margin-top: 1px; }
-  .prereq-body { flex: 1; }
-  .prereq-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--ink); margin-bottom: 3px; }
-  .prereq-desc { color: var(--ink-3); font-size: 13px; line-height: 1.5; }
-  .quiz { margin: 32px 0; padding: 24px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 10px; }
-  .quiz h3 { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--ink); margin: 0 0 12px; }
-  .quiz-q { font-size: 15px; color: var(--ink-2); margin-bottom: 14px; }
-  .quiz-opts { display: flex; flex-direction: column; gap: 8px; }
-  .quiz-opt { padding: 10px 14px; background: #fff; border: 1px solid var(--paper-3); border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 160ms; }
-  .quiz-opt:hover { border-color: var(--ink-3); }
-  .quiz-opt.correct { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
-  .quiz-opt.wrong   { background: var(--err-soft); border-color: var(--err); color: var(--err); }
-  .quiz-feedback { margin-top: 12px; font-size: 13px; line-height: 1.5; min-height: 20px; }
+  .check-list { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
+  .check-item { display: grid; grid-template-columns: 28px 1fr 80px; gap: 14px; align-items: center; padding: 14px 16px; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 8px; cursor: pointer; transition: all 200ms; }
+  .check-item:hover { border-color: var(--ink-3); }
+  .check-item.done { border-color: var(--key); background: color-mix(in oklch, var(--key) 8%, var(--paper)); }
+  .check-box { width: 22px; height: 22px; border: 1.5px solid var(--ink-3); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 12px; color: transparent; transition: all 150ms; }
+  .check-item.done .check-box { background: var(--key); border-color: var(--key); color: var(--paper); }
+  .check-title { font-family: var(--font-display); font-size: 16px; color: var(--ink); }
+  .check-sub { font-family: var(--font-sans); font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .check-action { font-family: var(--font-mono); font-size: 11px; color: var(--query); text-align: right; }
 </style>
 </head><body>
 <div class="app" data-screen-label="Reader · §0">
@@ -36,121 +29,172 @@
   <main class="reader">
     <div class="topbar" id="topbar"></div>
 
-    <div class="eyebrow">Prerequisites · self-assessment</div>
+    <div class="eyebrow">Part 0 · Prerequisites</div>
     <h1 class="hero">What you need <em>to start.</em></h1>
-    <p class="lede">You do not need a PhD. You need three things: vectors, dot products, and the idea that a function can produce a probability distribution. Check them off below — there's a quick quiz for each.</p>
+    <p class="lede">You do not need a PhD. You need three concepts: vectors, dot products, and the idea that a function can produce a probability distribution. Run the four self-checks below — if all four feel comfortable, you're ready for §1.</p>
 
-    <h2>The checklist</h2>
-    <ul class="checklist" id="checklist">
-      <li data-id="vectors">
-        <div class="chk" id="chk-vectors"></div>
-        <div class="prereq-body">
-          <div class="prereq-title">Vectors as lists of numbers</div>
-          <div class="prereq-desc">A vector is an ordered list. <code>[0.9, 0.1, 0.2, -0.1]</code> is a 4-vector. No geometry required.</div>
-        </div>
-      </li>
-      <li data-id="dot">
-        <div class="chk" id="chk-dot"></div>
-        <div class="prereq-body">
-          <div class="prereq-title">The dot product</div>
-          <div class="prereq-desc">Multiply element-wise and sum: $\mathbf{a} \cdot \mathbf{b} = \sum_i a_i b_i$. Result is one number.</div>
-        </div>
-      </li>
-      <li data-id="matrix">
-        <div class="chk" id="chk-matrix"></div>
-        <div class="prereq-body">
-          <div class="prereq-title">Matrix multiplication</div>
-          <div class="prereq-desc">$AB_{ij} = \sum_k A_{ik} B_{kj}$. Each output cell is a dot product of one row of $A$ with one column of $B$.</div>
-        </div>
-      </li>
-      <li data-id="softmax">
-        <div class="chk" id="chk-softmax"></div>
-        <div class="prereq-body">
-          <div class="prereq-title">Softmax turns scores into probabilities</div>
-          <div class="prereq-desc">$\text{softmax}(x_i) = e^{x_i} / \sum_j e^{x_j}$. All outputs are positive and sum to 1.</div>
-        </div>
-      </li>
-    </ul>
+    <h2>The four self-checks</h2>
 
-    <h2>Quick quizzes</h2>
-
-    <div class="quiz" id="q1">
-      <h3>Quiz 1 · dot product</h3>
-      <div class="quiz-q">What is $[1, 2, 3] \cdot [4, 5, 6]$?</div>
-      <div class="quiz-opts">
-        <div class="quiz-opt" data-correct="false">15</div>
-        <div class="quiz-opt" data-correct="true">32</div>
-        <div class="quiz-opt" data-correct="false">21</div>
-        <div class="quiz-opt" data-correct="false">6</div>
+    <div class="check-list" id="checklist">
+      <div class="check-item" data-id="vec"><div class="check-box">✓</div>
+        <div><div class="check-title">Vectors as ordered tuples of numbers</div><div class="check-sub">$v = [v_1, v_2, \ldots, v_d]$ with $d$ entries — that's it.</div></div>
+        <div class="check-action">→ exercise 1</div>
       </div>
-      <div class="quiz-feedback" id="fb1"></div>
-    </div>
-
-    <div class="quiz" id="q2">
-      <h3>Quiz 2 · softmax</h3>
-      <div class="quiz-q">Which of the following is <em>always true</em> of softmax output?</div>
-      <div class="quiz-opts">
-        <div class="quiz-opt" data-correct="false">All values are greater than 0.5</div>
-        <div class="quiz-opt" data-correct="true">All values are positive and sum to 1</div>
-        <div class="quiz-opt" data-correct="false">The largest input always maps to exactly 1</div>
-        <div class="quiz-opt" data-correct="false">Values can be negative</div>
+      <div class="check-item" data-id="dot"><div class="check-box">✓</div>
+        <div><div class="check-title">The dot product</div><div class="check-sub">$a \cdot b = \sum_i a_i b_i$. Returns a scalar. Big = aligned, zero = perpendicular.</div></div>
+        <div class="check-action">→ exercise 2</div>
       </div>
-      <div class="quiz-feedback" id="fb2"></div>
-    </div>
-
-    <div class="quiz" id="q3">
-      <h3>Quiz 3 · matrix shapes</h3>
-      <div class="quiz-q">If $Q$ has shape $[6, 4]$ and $K$ has shape $[6, 4]$, what is the shape of $QK^\top$?</div>
-      <div class="quiz-opts">
-        <div class="quiz-opt" data-correct="false">[4, 4]</div>
-        <div class="quiz-opt" data-correct="false">[6, 4]</div>
-        <div class="quiz-opt" data-correct="true">[6, 6]</div>
-        <div class="quiz-opt" data-correct="false">[4, 6]</div>
+      <div class="check-item" data-id="exp"><div class="check-box">✓</div>
+        <div><div class="check-title">The exponential function</div><div class="check-sub">$e^x$ is positive everywhere, monotone increasing, and grows fast.</div></div>
+        <div class="check-action">→ exercise 3</div>
       </div>
-      <div class="quiz-feedback" id="fb3"></div>
+      <div class="check-item" data-id="prob"><div class="check-box">✓</div>
+        <div><div class="check-title">A probability distribution over $n$ items</div><div class="check-sub">$n$ non-negative numbers that sum to 1.</div></div>
+        <div class="check-action">→ exercise 4</div>
+      </div>
     </div>
 
-    <div class="callout" style="background:var(--ok-soft);border-color:var(--ok);color:var(--ok)">
-      <strong>All three correct?</strong> You're ready. Head to §1 and start building intuition from scratch.
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Exercise 1 — Vector arithmetic</div>
+      <h3>Add, scale, take a length.</h3>
+      <p>Three operations cover 90% of what you'll do with vectors in this book. Try them.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 1 · operations on $a, b \in \mathbb{R}^4$</div>
+        <div class="fig__body">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2);line-height:2">
+            $a = [2, -1, 3, 0]$, &nbsp; $b = [1, 1, -1, 2]$
+          </div>
+          <div class="stat-row">
+            <div class="stat-tile"><span class="l">a + b</span><span class="v" id="ex1-add">[3, 0, 2, 2]</span></div>
+            <div class="stat-tile"><span class="l">2 · a</span><span class="v" id="ex1-scale">[4, −2, 6, 0]</span></div>
+            <div class="stat-tile"><span class="l">‖a‖</span><span class="v" id="ex1-norm">3.74</span></div>
+            <div class="stat-tile"><span class="l">‖b‖</span><span class="v" id="ex1-norm-b">2.65</span></div>
+          </div>
+          <p style="margin-top:14px;font-size:13px;color:var(--ink-3)">Componentwise add. Componentwise scale. Length is $\sqrt{\sum_i v_i^2}$ (Pythagoras in $d$ dimensions).</p>
+        </div>
+      </div>
     </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Exercise 2 — Compute $a \cdot b$ by hand</div>
+      <h3>One number from two vectors.</h3>
+
+      <div class="fig">
+        <div class="fig__title">Figure 2 · step-by-step dot product</div>
+        <div class="fig__body">
+          <div id="dot-steps" style="font-family:var(--font-mono);font-size:13px;line-height:2.2;color:var(--ink-2)"></div>
+        </div>
+        <div class="fig__cap"><b>Fig 2</b> — multiply pairwise, add the results.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Exercise 3 — Exponentials grow fast</div>
+      <h3>$e^x$ at six values.</h3>
+
+      <div class="fig">
+        <div class="fig__title">Figure 3 · $x \mapsto e^x$</div>
+        <div class="fig__body">
+          <div id="exp-bars"></div>
+          <p style="margin-top:14px;font-size:13px;color:var(--ink-3)">Doubling $x$ doesn't double $e^x$ — it squares it. This explosive growth is what makes softmax sharp: tiny score differences become large probability ratios.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Exercise 4 — Build a distribution</div>
+      <h3>Drag five sliders to make probabilities.</h3>
+      <p>Adjust the bars. We'll renormalize so they always sum to 1 — i.e., always form a valid probability distribution. This is exactly what softmax does, just with exponentials baked in.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 4 · normalize-to-sum-one</div>
+        <div class="fig__body">
+          <div id="prob-sliders" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div class="stat-row" style="margin-top:18px">
+            <div class="stat-tile"><span class="l">sum</span><span class="v" id="prob-sum">1.000</span></div>
+            <div class="stat-tile"><span class="l">max</span><span class="v" id="prob-max">—</span></div>
+            <div class="stat-tile"><span class="l">entropy</span><span class="v" id="prob-ent">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout"><strong>If all four feel comfortable —</strong> turn the page. The next chapter assumes only this, and builds attention from it.</div>
+
+    <h2>References</h2>
+    <p class="refs">
+    [1] Strang (2016). <em>Introduction to Linear Algebra.</em> — gentlest path through vectors and dot products.<br>
+    [2] 3Blue1Brown — <em>Essence of Linear Algebra.</em> — visual companion to (1).<br>
+    [3] MacKay (2003). <em>Information Theory, Inference, and Learning Algorithms.</em> §2 — distributions and entropy.
+    </p>
 
     <nav class="fn-nav" id="footer-nav"></nav>
   </main>
 </div>
 
 <script>
-// Add §0 to shell chapters list at front
-window._ch0 = true;
-AttendShell.mount({ chapter: "Prerequisites", section: "§0 What you need to start", progress: 0, activeId: "§0" });
+AttendShell.mount({ chapter: "Chapter 0", section: "§0 What you need to start", progress: 7, activeId: "§0" });
+const visited = JSON.parse(localStorage.getItem('attend-progress') || '[]');
+if (!visited.includes('§0')) { visited.push('§0'); localStorage.setItem('attend-progress', JSON.stringify(visited)); }
 
-// Checklist toggle
-const checks = {};
-document.querySelectorAll('#checklist li').forEach(li => {
-  li.addEventListener('click', () => {
-    const id = li.dataset.id;
-    checks[id] = !checks[id];
-    li.classList.toggle('done', checks[id]);
-    document.getElementById('chk-' + id).textContent = checks[id] ? '✓' : '';
+// Checklist
+document.querySelectorAll('.check-item').forEach(el => {
+  const k = 'attend-check-' + el.dataset.id;
+  if (localStorage.getItem(k) === '1') el.classList.add('done');
+  el.addEventListener('click', () => {
+    el.classList.toggle('done');
+    localStorage.setItem(k, el.classList.contains('done') ? '1' : '0');
   });
 });
 
-// Quizzes
-[1,2,3].forEach(n => {
-  const q = document.getElementById('q' + n);
-  const fb = document.getElementById('fb' + n);
-  let answered = false;
-  q.querySelectorAll('.quiz-opt').forEach(opt => {
-    opt.addEventListener('click', () => {
-      if (answered) return;
-      answered = true;
-      const correct = opt.dataset.correct === 'true';
-      opt.classList.add(correct ? 'correct' : 'wrong');
-      if (!correct) q.querySelector('[data-correct="true"]').classList.add('correct');
-      fb.innerHTML = correct
-        ? '<span style="color:var(--ok);font-weight:600">✓ Correct.</span>'
-        : '<span style="color:var(--err);font-weight:600">✕ Not quite.</span> See the correct answer highlighted above.';
+// Exercise 2 - dot product steps
+(() => {
+  const a = [2, -1, 3, 0], b = [1, 1, -1, 2];
+  const lines = a.map((ai, i) => `&nbsp;&nbsp;${ai} × ${b[i]} &nbsp;=&nbsp; <span style="color:var(--query)">${ai*b[i]}</span>`);
+  const sum = a.reduce((s,x,i)=>s+x*b[i],0);
+  document.getElementById('dot-steps').innerHTML =
+    `a · b = (2)(1) + (−1)(1) + (3)(−1) + (0)(2)<br>` +
+    lines.join('<br>') +
+    `<br>—————<br>&nbsp;&nbsp;sum = <span style="color:var(--query);font-size:18px;font-weight:600">${sum}</span>`;
+})();
+
+// Exercise 3 - exp bars
+(() => {
+  const xs = [-2, -1, 0, 1, 2, 3];
+  const ys = xs.map(x => Math.exp(x));
+  const max = Math.max(...ys);
+  document.getElementById('exp-bars').innerHTML = xs.map((x, i) =>
+    `<div class="bar-row"><div class="lbl">e^${x}</div><div class="track"><div class="fill" style="width:${(ys[i]/max)*100}%"></div></div><div class="v">${ys[i].toFixed(3)}</div></div>`
+  ).join('');
+})();
+
+// Exercise 4 - probability sliders
+(() => {
+  let raw = [3, 1, 2, 0.5, 1];
+  const labels = ['cat','dog','fish','bird','frog'];
+  const render = () => {
+    const sum = raw.reduce((a,b)=>a+b,0) || 1;
+    const p = raw.map(r => r/sum);
+    document.getElementById('prob-sliders').innerHTML = raw.map((r, i) =>
+      `<div style="display:grid;grid-template-columns:50px 1fr 50px;gap:10px;align-items:center">
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">${labels[i]}</div>
+        <input type="range" min="0" max="5" step="0.1" value="${r}" data-i="${i}" style="width:100%;accent-color:var(--query)">
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-2);text-align:right">${p[i].toFixed(3)}</div>
+      </div>`
+    ).join('');
+    document.getElementById('prob-max').textContent = Math.max(...p).toFixed(3);
+    const H = -p.reduce((s,pi)=>s+(pi>0?pi*Math.log2(pi):0),0);
+    document.getElementById('prob-ent').textContent = H.toFixed(2);
+    document.querySelectorAll('#prob-sliders input').forEach(inp => {
+      inp.addEventListener('input', e => { raw[+e.target.dataset.i] = +e.target.value; render(); });
     });
-  });
-});
+  };
+  render();
+})();
 </script>
 </body></html>

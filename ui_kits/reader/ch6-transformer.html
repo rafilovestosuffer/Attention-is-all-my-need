@@ -1,48 +1,137 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>Attend · §6 The full Transformer block</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attend · §6 The Transformer block</title>
 <link rel="icon" href="../../assets/brand/logomark.svg">
 <link rel="stylesheet" href="chapter.css">
+<link rel="stylesheet" href="deep.css">
+<link rel="stylesheet" href="../../src/styles/dark.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 <script src="shell.js"></script>
+<script>document.documentElement.setAttribute('data-scheme','dark');</script>
+<style>
+  .block-diag { display: flex; flex-direction: column; gap: 8px; padding: 18px; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 8px; }
+  .blk { padding: 12px 16px; border: 1px solid var(--paper-3); border-radius: 6px; background: var(--paper-2); cursor: pointer; transition: all 200ms; position: relative; }
+  .blk:hover { border-color: var(--query); }
+  .blk.active { border-color: var(--query); background: color-mix(in oklch, var(--query) 10%, var(--paper-2)); }
+  .blk .b-name { font-family: var(--font-display); font-style: italic; font-size: 16px; color: var(--ink); }
+  .blk .b-formula { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+  .blk-arrow { text-align: center; color: var(--ink-4); font-size: 14px; }
+  .blk-residual { position: absolute; right: -28px; top: 50%; width: 22px; height: 2px; background: var(--key); }
+  .btn-mono{padding:6px 14px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer;color:var(--ink)}
+  .param-row { display: grid; grid-template-columns: 1fr 110px 110px; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--paper-3); }
+  .param-row:last-child { border-bottom: 0; }
+  .param-row .pn { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+  .param-row .ps { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); text-align: right; }
+  .param-row .pv { font-family: var(--font-mono); font-size: 12px; color: var(--query); text-align: right; font-variant-numeric: tabular-nums; }
+</style>
 </head><body>
 <div class="app" data-screen-label="Reader · §6">
   <aside class="sidebar" id="sidebar"></aside>
   <main class="reader">
     <div class="topbar" id="topbar"></div>
 
-    <div class="eyebrow">Part III · Multi-head and beyond</div>
+    <div class="eyebrow">Part III · §6</div>
     <h1 class="hero">The Transformer block, <em>wired up.</em></h1>
-    <p class="lede">We have every ingredient. Now we assemble. A Transformer block is a piece of circuitry with one attention sub-layer, one feed-forward sub-layer, two residuals, and two layer-norms — no more, no less.</p>
+    <p class="lede">We have every ingredient. Now we assemble. A Transformer block is one attention sub-layer, one feed-forward sub-layer, two residuals, two LayerNorms. Stack $N$ of them and you have GPT.</p>
 
-    <p>Click any wire in the diagram. The right-hand panel explains what flows through it, what shape it has, and what the math does at that point.</p>
+    <h2>The block, in formulas</h2>
+    <div class="equation-block">
+      <div class="lbl">Pre-norm Transformer block</div>
+      $$ x' = x + \mathrm{MultiHead}(\mathrm{LN}(x)) $$
+      $$ y = x' + \mathrm{FFN}(\mathrm{LN}(x')) $$
+    </div>
+    <p>Two residual streams. Two LayerNorms. The original "Attention Is All You Need" paper uses post-norm ($\mathrm{LN}(x + \text{sublayer}(x))$); modern LLMs almost universally switched to pre-norm — it trains more stably at depth.</p>
 
-    <h2>The block</h2>
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 1 — Click each piece</div>
+      <h3>Six components, one block.</h3>
 
-    <div class="fig">
-      <div class="fig__title">Figure 7 · encoder-layer data-flow</div>
-      <div class="fig__body" style="display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:stretch">
-        <svg id="block-svg" viewBox="0 0 520 560" style="width:100%"></svg>
-        <div id="wire-info" style="padding:18px;background:var(--paper);border:1px solid var(--paper-3);border-radius:6px;font-size:13px;line-height:1.55">
-          <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-3);margin-bottom:6px">click any wire</div>
-          <div style="font-family:var(--font-display);font-style:italic;font-weight:600;font-size:16px;color:var(--ink);margin-bottom:8px">Start with the input</div>
-          <div style="color:var(--ink-2)">Every wire carries a tensor of shape <em class="math">[n, d<sub>model</sub>]</em> — <em>n</em> tokens, each represented by a <em>d<sub>model</sub></em>-wide vector. That shape is preserved through the entire block, which is why you can stack them.</div>
+      <div class="fig">
+        <div class="fig__title">Figure 1 · pre-norm Transformer block, interactive</div>
+        <div class="fig__body">
+          <div class="block-diag">
+            <div class="blk" data-id="in"><div class="b-name">input x</div><div class="b-formula">[batch, seq, d_model]</div></div>
+            <div class="blk-arrow">↓</div>
+            <div class="blk" data-id="ln1"><div class="b-name">LayerNorm</div><div class="b-formula">y = γ · (x − μ)/σ + β</div></div>
+            <div class="blk-arrow">↓</div>
+            <div class="blk" data-id="mha"><div class="b-name">Multi-head attention</div><div class="b-formula">Concat(head_1, …, head_h) W_O</div></div>
+            <div class="blk-arrow">↓</div>
+            <div class="blk" data-id="res1"><div class="b-name">+ residual from x</div><div class="b-formula">x' = x + MHA(LN(x))</div></div>
+            <div class="blk-arrow">↓</div>
+            <div class="blk" data-id="ln2"><div class="b-name">LayerNorm</div><div class="b-formula">y = γ · (x' − μ)/σ + β</div></div>
+            <div class="blk-arrow">↓</div>
+            <div class="blk" data-id="ffn"><div class="b-name">Feed-forward (FFN)</div><div class="b-formula">W_2 · GELU(W_1 · x + b_1) + b_2</div></div>
+            <div class="blk-arrow">↓</div>
+            <div class="blk" data-id="res2"><div class="b-name">+ residual from x'</div><div class="b-formula">y = x' + FFN(LN(x'))</div></div>
+            <div class="blk-arrow">↓</div>
+            <div class="blk" data-id="out"><div class="b-name">output y</div><div class="b-formula">[batch, seq, d_model]</div></div>
+          </div>
+          <div id="block-detail" style="margin-top:18px;padding:14px 18px;background:var(--paper);border:1px solid var(--paper-3);border-radius:6px;font-family:var(--font-sans);font-size:13px;color:var(--ink-2);min-height:60px;line-height:1.6"></div>
         </div>
+        <div class="fig__cap"><b>Fig 1</b> — click any block for a one-paragraph explanation of what that piece does and why.</div>
       </div>
-      <div class="fig__cap"><b>Fig 7</b> — the only operation that mixes across tokens is multi-head attention. The FFN applies position-wise; both residuals skip exactly one sub-layer.</div>
     </div>
 
-    <h2>The equation</h2>
-    <p>Written out, one encoder layer is:</p>
-    <p style="text-align:center;font-family:var(--font-display);font-style:italic;font-size:18px;color:var(--ink);margin:20px 0;line-height:1.9">
-      z = LayerNorm(x + MultiHead(x, x, x))<br>
-      y = LayerNorm(z + FFN(z))
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 2 — Parameter count</div>
+      <h3>Where do the weights live?</h3>
+      <p>Spoiler: <strong>two thirds of a Transformer's parameters are in the FFN, not attention.</strong> The popular intuition that "attention is the model" is half right — attention is the inductive bias, but FFN is the storage.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 2 · per-layer parameter breakdown</div>
+        <div class="fig__body">
+          <div class="controls">
+            <div class="ctrl"><span>$d_{\text{model}}$</span>
+              <input id="dm" type="range" min="64" max="2048" step="64" value="512">
+              <span class="val" id="dmval">512</span>
+            </div>
+            <div class="ctrl"><span>FFN expansion</span>
+              <input id="ff-mult" type="range" min="1" max="8" step="1" value="4">
+              <span class="val" id="ff-val">4</span>×
+            </div>
+          </div>
+          <div id="param-table" style="margin-top:18px"></div>
+          <div class="stat-row" style="margin-top:18px">
+            <div class="stat-tile"><span class="l">total per layer</span><span class="v" id="ptotal">—</span></div>
+            <div class="stat-tile"><span class="l">attention share</span><span class="v" id="pattn">—</span></div>
+            <div class="stat-tile"><span class="l">ffn share</span><span class="v" id="pffn">—</span></div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 2</b> — for any reasonable FFN expansion (≥ 4×), the FFN dominates. This is why MoE replaces FFN, not attention.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 3 — Pre-norm vs. post-norm</div>
+      <h3>One bracket moved, training behavior changes.</h3>
+      <p>Two equations. They look almost identical:</p>
+      <div class="equation-block">
+        <div class="lbl">Original (post-norm)</div>
+        $$ x' = \mathrm{LN}(x + \mathrm{Sublayer}(x)) $$
+      </div>
+      <div class="equation-block">
+        <div class="lbl">Modern (pre-norm)</div>
+        $$ x' = x + \mathrm{Sublayer}(\mathrm{LN}(x)) $$
+      </div>
+      <p>In post-norm the residual flows through LayerNorm. In pre-norm there's an unbroken identity path from input to output of every layer — the residual stream — so gradients flow cleanly even through a stack of 100+ blocks. Every modern LLM (GPT, LLaMA, Mistral) is pre-norm.</p>
+    </div>
+
+    <div class="callout"><strong>To remember —</strong> attention is the routing mechanism, FFN is the memory. Residuals carry information across layers; LayerNorm keeps activations from blowing up. Stack the block 96 times and you have GPT-3.</div>
+
+    <h2>References</h2>
+    <p class="refs">
+    [1] Vaswani et al. (2017). §3.1 — encoder/decoder block.<br>
+    [2] Xiong et al. (2020). <em>On Layer Normalization in the Transformer Architecture.</em> — pre vs. post-norm.<br>
+    [3] Geva et al. (2021). <em>Transformer Feed-Forward Layers Are Key-Value Memories.</em><br>
+    [4] elhage et al. (2021). <em>A Mathematical Framework for Transformer Circuits.</em> — residual stream.
     </p>
-    <p>The <strong>residuals</strong> let gradient flow unblocked past every sub-layer; <strong>layer-norm</strong> keeps activations in a well-conditioned range; <strong>multi-head attention</strong> mixes information across tokens; the <strong>FFN</strong> (two linears with a ReLU between them) does the position-wise computation. Everything else in a full model — decoder, cross-attention, masking — is a variation on these four parts.</p>
-
-    <div class="callout"><strong>One sentence to remember —</strong> one block mixes across tokens once and across features once, then hands the result to the next block unchanged in shape.</div>
-
-    <h2>What you've built</h2>
-    <p>From a single dot product you now have: similarity → softmax → scaled dot-product attention → multi-head attention → positional encoding → the full block. Every Transformer in use today — the ones writing code, translating languages, folding proteins — is a stack of these blocks with variations on what's masked and what's cross-attended. The math is no harder than what you just read.</p>
 
     <nav class="fn-nav" id="footer-nav"></nav>
   </main>
@@ -50,102 +139,62 @@
 
 <script>
 AttendShell.mount({ chapter: "Chapter 6", section: "§6 The full Transformer block", progress: 100, activeId: "§6" });
+const v = JSON.parse(localStorage.getItem('attend-progress') || '[]');
+if (!v.includes('§6')) { v.push('§6'); localStorage.setItem('attend-progress', JSON.stringify(v)); }
 
-(() => {
-  const INFO = {
-    "in":    { title: "Input embeddings + PE", shape: "[n, d_model]", body: "Token embeddings with sinusoidal positional encodings already added. Every downstream wire in this block will have the same shape — that's what lets us stack layers." },
-    "q-split":  { title: "Residual branch split", shape: "[n, d_model]", body: "The input fans out: one copy goes into the attention sub-layer, the other skips around it. No weights here, just a tee." },
-    "attn":  { title: "Multi-head attention", shape: "[n, d_model]", body: "Eight heads run in parallel (§4.4), each computing scaled dot-product attention on its own slice. Concatenated, projected by W^O, and returned at the original shape." },
-    "add1":  { title: "First residual add", shape: "[n, d_model]", body: "x + MultiHead(x). Adding the pre-attention input back in lets gradients flow past the attention block during training, which is the difference between a 6-layer network and a 96-layer one." },
-    "ln1":   { title: "Layer norm #1", shape: "[n, d_model]", body: "Normalizes each token's feature vector to zero mean and unit variance, then applies a learned scale and shift. Keeps activations well-conditioned for the next sub-layer." },
-    "ffn-split": { title: "Residual branch split", shape: "[n, d_model]", body: "Same story as before: the normalized value fans out into FFN and around it." },
-    "ffn":   { title: "Feed-forward network", shape: "[n, d_model]", body: "Applied token-wise (independently per position). Two linears with a ReLU between: W_1 expands to d_ff ≈ 4·d_model, ReLU, W_2 projects back. This is where most of a Transformer's parameters live." },
-    "add2":  { title: "Second residual add", shape: "[n, d_model]", body: "z + FFN(z). Second skip connection, same role as the first: a gradient highway." },
-    "ln2":   { title: "Layer norm #2", shape: "[n, d_model]", body: "Final normalization before handing off to the next block." },
-    "out":   { title: "Output to next layer", shape: "[n, d_model]", body: "Shape preserved. Stack another block on top of this one and repeat N times — the paper uses N = 6." },
-  };
+const explanations = {
+  in: 'The input is a tensor of shape [batch, seq_len, d_model]. Each token is represented by a d_model-dimensional vector — typically d_model = 512, 768, or 4096 depending on the model.',
+  ln1: 'LayerNorm normalizes each token vector independently to have mean 0 and unit variance, then scales and shifts by learned per-dimension parameters γ, β. Stabilizes training. Pre-norm = LN before the sublayer.',
+  mha: 'h parallel attention heads, each operating on Q, K, V projected into d_model/h dimensions. Their outputs are concatenated and mixed by W_O. This is the only piece that mixes information across token positions.',
+  res1: 'The residual connection. The block adds — never replaces — its sublayer output. This creates an unbroken information highway through the network: gradients can flow from output to input without going through any layer at all.',
+  ln2: 'A second LayerNorm before the FFN. Same operation as ln1 but with its own γ, β.',
+  ffn: 'A two-layer MLP applied independently to each position. Typically W_1 expands d_model → 4·d_model, then GELU activation, then W_2 contracts back. Holds about two thirds of all model parameters. Acts as a key-value memory of facts learned in training.',
+  res2: 'The second residual. After this, the block has done its work: take an input, refine it through attention (cross-token mixing) and FFN (per-token compute), output the same shape.',
+  out: 'Same shape as input. This is the key property that makes Transformers stackable — you can drop the output of one block straight into the next without any glue.'
+};
 
-  const BOX = (x, y, w, h, label, sub, wireId) =>
-    `<g class="wire" data-w="${wireId}" style="cursor:pointer">
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="var(--paper-2)" stroke="var(--paper-edge)" stroke-width="1.5"/>
-      <text x="${x+w/2}" y="${y+h/2-3}" text-anchor="middle" fill="var(--ink)" font-family="var(--font-display)" font-style="italic" font-weight="600" font-size="13">${label}</text>
-      <text x="${x+w/2}" y="${y+h/2+13}" text-anchor="middle" fill="var(--ink-3)" font-family="var(--font-mono)" font-size="9">${sub}</text>
-    </g>`;
-
-  const WIRE = (x1, y1, x2, y2, id) =>
-    `<line class="wire" data-w="${id}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--ink-3)" stroke-width="2.5" style="cursor:pointer"/>`;
-
-  const svg = document.getElementById('block-svg');
-  svg.innerHTML = `
-    <defs>
-      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-        <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/>
-      </marker>
-    </defs>
-
-    ${BOX(170, 20, 180, 44, 'Input + PE', '[n, d_model]', 'in')}
-
-    ${WIRE(260, 64, 260, 100, 'q-split')}
-    <circle cx="260" cy="100" r="4" fill="var(--ink-3)"/>
-    ${WIRE(260, 100, 420, 100, 'q-split')}
-    ${WIRE(420, 100, 420, 240, 'q-split')}
-    ${WIRE(260, 100, 260, 140, 'q-split')}
-
-    ${BOX(170, 140, 180, 44, 'Multi-head attention', '§4', 'attn')}
-
-    ${WIRE(260, 184, 260, 240, 'attn')}
-    <circle cx="260" cy="240" r="10" fill="var(--paper)" stroke="var(--query)" stroke-width="2"/>
-    <text x="260" y="244" text-anchor="middle" fill="var(--query)" font-family="var(--font-display)" font-style="italic" font-weight="700" font-size="14">+</text>
-    ${WIRE(420, 240, 274, 240, 'add1')}
-    ${WIRE(260, 250, 260, 280, 'add1')}
-
-    ${BOX(170, 280, 180, 36, 'Layer norm', '[n, d_model]', 'ln1')}
-
-    ${WIRE(260, 316, 260, 340, 'ln1')}
-    <circle cx="260" cy="340" r="4" fill="var(--ink-3)"/>
-    ${WIRE(260, 340, 420, 340, 'ffn-split')}
-    ${WIRE(420, 340, 420, 440, 'ffn-split')}
-    ${WIRE(260, 340, 260, 370, 'ffn-split')}
-
-    ${BOX(170, 370, 180, 44, 'Feed-forward', 'W₁ · ReLU · W₂', 'ffn')}
-
-    ${WIRE(260, 414, 260, 440, 'ffn')}
-    <circle cx="260" cy="440" r="10" fill="var(--paper)" stroke="var(--query)" stroke-width="2"/>
-    <text x="260" y="444" text-anchor="middle" fill="var(--query)" font-family="var(--font-display)" font-style="italic" font-weight="700" font-size="14">+</text>
-    ${WIRE(420, 440, 274, 440, 'add2')}
-    ${WIRE(260, 450, 260, 480, 'add2')}
-
-    ${BOX(170, 480, 180, 36, 'Layer norm', '[n, d_model]', 'ln2')}
-
-    ${WIRE(260, 516, 260, 548, 'out')}
-    <text x="260" y="556" text-anchor="middle" fill="var(--ink-3)" font-family="var(--font-mono)" font-size="10">→ next block</text>
-  `;
-
-  const info = document.getElementById('wire-info');
-  const show = (id) => {
-    const d = INFO[id];
-    if (!d) return;
-    info.innerHTML = `
-      <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--query);margin-bottom:6px">${d.shape}</div>
-      <div style="font-family:var(--font-display);font-style:italic;font-weight:600;font-size:16px;color:var(--ink);margin-bottom:8px">${d.title}</div>
-      <div style="color:var(--ink-2)">${d.body}</div>
-    `;
-    svg.querySelectorAll('.wire').forEach(el => {
-      const active = el.dataset.w === id;
-      if (el.tagName === 'line') {
-        el.setAttribute('stroke', active ? 'var(--query)' : 'var(--ink-3)');
-        el.setAttribute('stroke-width', active ? '3.5' : '2.5');
-      } else {
-        el.querySelector('rect').setAttribute('stroke', active ? 'var(--query)' : 'var(--paper-edge)');
-        el.querySelector('rect').setAttribute('stroke-width', active ? '2.5' : '1.5');
-      }
-    });
-  };
-
-  svg.querySelectorAll('.wire').forEach(el => {
-    el.addEventListener('click', () => show(el.dataset.w));
-    el.addEventListener('mouseenter', () => show(el.dataset.w));
+document.querySelectorAll('.blk').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.blk').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('block-detail').innerHTML = explanations[b.dataset.id] || '';
   });
+});
+document.querySelector('.blk[data-id="mha"]').click();
+
+// Param breakdown
+(() => {
+  const render = () => {
+    const dm = +document.getElementById('dm').value;
+    const mult = +document.getElementById('ff-mult').value;
+    const dff = dm * mult;
+    document.getElementById('dmval').textContent = dm;
+    document.getElementById('ff-val').textContent = mult;
+
+    const params = [
+      { name: 'W_Q (Q projection)', shape: `${dm}×${dm}`, n: dm*dm },
+      { name: 'W_K (K projection)', shape: `${dm}×${dm}`, n: dm*dm },
+      { name: 'W_V (V projection)', shape: `${dm}×${dm}`, n: dm*dm },
+      { name: 'W_O (output)',       shape: `${dm}×${dm}`, n: dm*dm },
+      { name: 'FFN W_1',            shape: `${dm}×${dff}`, n: dm*dff },
+      { name: 'FFN W_2',            shape: `${dff}×${dm}`, n: dff*dm },
+      { name: 'LayerNorm × 2',      shape: `${dm}+${dm}`, n: 4*dm },
+    ];
+    const total = params.reduce((s,p)=>s+p.n,0);
+    const fmtN = n => n >= 1e6 ? (n/1e6).toFixed(1)+'M' : (n/1e3).toFixed(0)+'K';
+    document.getElementById('param-table').innerHTML = params.map(p =>
+      `<div class="param-row"><span class="pn">${p.name}</span><span class="ps">${p.shape}</span><span class="pv">${fmtN(p.n)}</span></div>`
+    ).join('');
+
+    const attn = 4*dm*dm;
+    const ffn = 2*dm*dff;
+    document.getElementById('ptotal').textContent = fmtN(total);
+    document.getElementById('pattn').textContent = ((attn/total)*100).toFixed(0) + '%';
+    document.getElementById('pffn').textContent = ((ffn/total)*100).toFixed(0) + '%';
+  };
+  document.getElementById('dm').addEventListener('input', render);
+  document.getElementById('ff-mult').addEventListener('input', render);
+  render();
 })();
 </script>
 </body></html>

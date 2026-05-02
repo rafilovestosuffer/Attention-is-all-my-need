@@ -1,139 +1,199 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Attend · §5 Positional encodings</title>
 <link rel="icon" href="../../assets/brand/logomark.svg">
 <link rel="stylesheet" href="chapter.css">
+<link rel="stylesheet" href="deep.css">
+<link rel="stylesheet" href="../../src/styles/dark.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 <script src="shell.js"></script>
+<script>document.documentElement.setAttribute('data-scheme','dark');</script>
+<style>
+  .pe-grid { display: grid; gap: 0; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 6px; overflow: hidden; }
+  .pe-cell { aspect-ratio: 1; }
+  .btn-mono{padding:6px 14px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer;color:var(--ink)}
+</style>
 </head><body>
 <div class="app" data-screen-label="Reader · §5">
   <aside class="sidebar" id="sidebar"></aside>
   <main class="reader">
     <div class="topbar" id="topbar"></div>
 
-    <div class="eyebrow">Part III · Multi-head and beyond</div>
+    <div class="eyebrow">Part III · §5</div>
     <h1 class="hero">Positional encodings, <em>a choir of sinusoids.</em></h1>
-    <p class="lede">Attention is permutation-invariant. Shuffle the tokens and the math is unchanged — which is a disaster for language, where order is meaning. The Transformer fixes this by adding a pattern to every token embedding that depends only on its position.</p>
+    <p class="lede">Attention is permutation-invariant. Shuffle the tokens and the math is unchanged — a disaster for language, where order is meaning. The Transformer's fix: add a position-dependent vector to each token embedding before the first attention layer.</p>
 
-    <p>Each position <em class="math">pos</em> gets a <em class="math">d<sub>model</sub></em>-dimensional vector whose even entries are sines and odd entries are cosines — each at a different frequency:</p>
-    <p style="text-align:center;font-family:var(--font-display);font-style:italic;font-size:18px;color:var(--ink);margin:20px 0">
-      PE(pos, 2i)   = sin(pos / 10000<sup>2i/d</sup>)<br>
-      PE(pos, 2i+1) = cos(pos / 10000<sup>2i/d</sup>)
-    </p>
+    <h2>The formula</h2>
+    <div class="equation-block">
+      <div class="lbl">Sinusoidal positional encoding</div>
+      $$ \mathrm{PE}_{(\mathit{pos}, 2i)} = \sin\!\left(\frac{\mathit{pos}}{10000^{2i/d}}\right) $$
+      $$ \mathrm{PE}_{(\mathit{pos}, 2i+1)} = \cos\!\left(\frac{\mathit{pos}}{10000^{2i/d}}\right) $$
+    </div>
+    <p>Each dimension is a sinusoid at a different frequency — fast wiggles in low dimensions, slow ones in high dimensions. The wavelengths form a geometric progression from $2\pi$ to $10000 \cdot 2\pi$.</p>
 
-    <h2>The pattern</h2>
-    <p>Below, rows are positions (0…31), columns are dimensions (0…63). Low-index columns oscillate fast; high-index columns drift slow. Together they give every position a unique fingerprint — and, crucially, one that encodes <em>relative</em> distance in a linearly recoverable way.</p>
+    <p>Two reasons this works. <strong>Uniqueness:</strong> no two positions get the same vector, so attention can tell them apart. <strong>Linear relative offset:</strong> $\mathrm{PE}_{pos+k}$ is a linear function of $\mathrm{PE}_{pos}$ — the model can learn relative-distance attention with a single linear projection.</p>
 
-    <div class="fig">
-      <div class="fig__title">Figure 6 · sinusoidal positional encoding</div>
-      <div class="fig__body">
-        <div class="controls">
-          <div class="ctrl"><span>d<sub>model</sub></span>
-            <input id="dm" type="range" min="16" max="128" step="16" value="64"><span class="val" id="dmval">64</span>
-          </div>
-          <div class="ctrl"><span>sequence length</span>
-            <input id="sl" type="range" min="8" max="64" step="8" value="32"><span class="val" id="slval">32</span>
-          </div>
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 1 — The PE matrix, visualized</div>
+      <h3>One row per position, one column per dimension.</h3>
+      <p>Cool blues are $-1$, warm reds are $+1$. Low-dim columns flicker quickly, high-dim columns barely change. That's the geometric frequency progression made visible.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 1 · PE for 32 positions × 64 dimensions</div>
+        <div class="fig__body">
+          <div id="pe-mat" class="pe-grid" style="grid-template-columns:repeat(64, 1fr)"></div>
+          <p style="margin-top:14px;font-size:13px;color:var(--ink-3)">x-axis: dimension (0…63). y-axis: position (0…31). Each row is one token's added positional vector.</p>
         </div>
-        <canvas id="pe-canvas" width="640" height="320" style="width:100%;max-width:640px;margin-top:12px;background:var(--paper);border:1px solid var(--paper-3);border-radius:4px;image-rendering:pixelated"></canvas>
-        <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--ink-3);margin-top:4px;max-width:640px">
-          <span>← dim 0 (fast)</span>
-          <span>dim d/2 (medium)</span>
-          <span>dim d-1 (slow) →</span>
-        </div>
-
-        <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--paper-3)">
-          <div class="matrix__label" style="color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-family:var(--font-sans);font-weight:600;margin-bottom:10px">Trace one dimension</div>
-          <div class="controls">
-            <div class="ctrl"><span>dimension i</span>
-              <input id="tracei" type="range" min="0" max="63" step="1" value="2"><span class="val" id="traceival">2</span>
-            </div>
-          </div>
-          <canvas id="trace-canvas" width="640" height="120" style="width:100%;max-width:640px;margin-top:10px;background:var(--paper);border:1px solid var(--paper-3);border-radius:4px"></canvas>
-        </div>
+        <div class="fig__cap"><b>Fig 1</b> — at low dimensions the rows differ a lot row-to-row; at high dimensions, hardly at all. Every position still gets a unique fingerprint across all 64.</div>
       </div>
-      <div class="fig__cap"><b>Fig 6</b> — the encoding is added to the token embedding before attention. The network can learn to attend by position ("look two tokens back") because relative offsets are linear in this basis.</div>
     </div>
 
-    <div class="callout"><strong>One sentence to remember —</strong> the Transformer doesn't know what "first" means, so we tell it — in a basis of sinusoids.</div>
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 2 — Single-dimension waves</div>
+      <h3>Pick a column. Watch a sinusoid.</h3>
+
+      <div class="fig">
+        <div class="fig__title">Figure 2 · $\mathrm{PE}(\mathit{pos}, i)$ as a function of position</div>
+        <div class="fig__body">
+          <div class="controls">
+            <div class="ctrl"><span>dim $i$</span>
+              <input id="dim" type="range" min="0" max="63" step="1" value="4">
+              <span class="val" id="dimval">4</span>
+            </div>
+          </div>
+          <svg id="wave" viewBox="0 0 600 160" style="width:100%;height:160px;background:var(--paper);border:1px solid var(--paper-3);border-radius:6px;margin-top:14px">
+            <line x1="0" y1="80" x2="600" y2="80" stroke="var(--paper-edge)"></line>
+            <path id="wave-path" stroke="var(--query)" stroke-width="2" fill="none"></path>
+          </svg>
+          <div class="stat-row" style="margin-top:14px">
+            <div class="stat-tile"><span class="l">wavelength</span><span class="v" id="wvlen">—</span></div>
+            <div class="stat-tile"><span class="l">frequency (cyc/pos)</span><span class="v" id="wvfreq">—</span></div>
+            <div class="stat-tile"><span class="l">function</span><span class="v" id="wvfn" style="font-size:12px">sin</span></div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 2</b> — even-indexed dims are sines, odd are cosines. Wavelengths span four orders of magnitude — enough to disambiguate sequences up to ~10,000 positions.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 3 — Position similarity</div>
+      <h3>How similar are two positions?</h3>
+      <p>Compute $\mathrm{PE}_{i} \cdot \mathrm{PE}_{j}$ for every pair $(i,j)$. Result: a banded matrix that depends only on $|i-j|$ — i.e., on relative distance. <strong>This is the property that lets attention learn relative-position rules.</strong></p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 3 · $\mathrm{PE}\,\mathrm{PE}^\top$ for 32 positions</div>
+        <div class="fig__body">
+          <div id="pe-sim" class="pe-grid" style="grid-template-columns:repeat(32,1fr);max-width:520px;margin:0 auto"></div>
+          <p style="margin-top:14px;font-size:13px;color:var(--ink-3);text-align:center">Bright diagonal: same position. Bands parallel to it: pairs at fixed relative distance.</p>
+        </div>
+        <div class="fig__cap"><b>Fig 3</b> — the diagonal-banded structure is what gives sinusoidal PE its name. Rotary PE (RoPE) achieves the same property more cleanly and now dominates large LMs.</div>
+      </div>
+    </div>
+
+    <div class="callout"><strong>To remember —</strong> Attention has no notion of order until you give it one. Sinusoidal PE injects position with two properties: every position is unique, and pairwise similarity depends only on relative distance.</div>
+
+    <h2>References</h2>
+    <p class="refs">
+    [1] Vaswani et al. (2017). §3.5 — sinusoidal positional encoding.<br>
+    [2] Shaw, Uszkoreit & Vaswani (2018). <em>Self-Attention with Relative Position Representations.</em><br>
+    [3] Su et al. (2021). <em>RoFormer: Enhanced Transformer with Rotary Position Embedding.</em> — RoPE.<br>
+    [4] Press, Smith & Lewis (2021). <em>Train Short, Test Long: ALiBi.</em>
+    </p>
 
     <nav class="fn-nav" id="footer-nav"></nav>
   </main>
 </div>
 
 <script>
-AttendShell.mount({ chapter: "Chapter 5", section: "§5 Positional encodings", progress: 84, activeId: "§5" });
+AttendShell.mount({ chapter: "Chapter 5", section: "§5 Positional encodings", progress: 85, activeId: "§5" });
+const v = JSON.parse(localStorage.getItem('attend-progress') || '[]');
+if (!v.includes('§5')) { v.push('§5'); localStorage.setItem('attend-progress', JSON.stringify(v)); }
 
+// PE function
+const PE = (pos, i, d=64) => {
+  const k = Math.floor(i / 2);
+  const denom = Math.pow(10000, 2*k/d);
+  return i % 2 === 0 ? Math.sin(pos/denom) : Math.cos(pos/denom);
+};
+
+// Heat color from -1..1
+const peColor = (v) => {
+  // -1 -> cool, 0 -> neutral, +1 -> warm
+  if (v >= 0) return `var(--heat-${Math.min(5, Math.floor(v * 6))})`;
+  return `var(--cool-${Math.min(5, Math.floor(-v * 6))})`;
+};
+
+// ── Exp 1: PE matrix ─────────────────────────────────────────────────────
 (() => {
-  const pe = (pos, i, d) => {
-    const freq = 1 / Math.pow(10000, (2 * Math.floor(i/2)) / d);
-    return i % 2 === 0 ? Math.sin(pos * freq) : Math.cos(pos * freq);
-  };
-
-  const heatCol = (v) => {
-    // v in [-1, 1] → paper (0) to ink/query accents
-    if (v >= 0) {
-      const t = Math.min(1, v);
-      return `rgba(194, 65, 12, ${t.toFixed(3)})`;
-    } else {
-      const t = Math.min(1, -v);
-      return `rgba(14, 124, 107, ${t.toFixed(3)})`;
+  const cells = [];
+  for (let p = 0; p < 32; p++) {
+    for (let i = 0; i < 64; i++) {
+      cells.push(`<div class="pe-cell" style="background:${peColor(PE(p,i))}"></div>`);
     }
-  };
+  }
+  document.getElementById('pe-mat').innerHTML = cells.join('');
+})();
 
-  const renderHeatmap = () => {
-    const dm = +document.getElementById('dm').value;
-    const sl = +document.getElementById('sl').value;
-    document.getElementById('dmval').textContent = dm;
-    document.getElementById('slval').textContent = sl;
-    document.getElementById('tracei').max = dm - 1;
-
-    const c = document.getElementById('pe-canvas');
-    c.width = dm * 8;
-    c.height = sl * 8;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#F6F1E7';
-    ctx.fillRect(0, 0, c.width, c.height);
-    for (let p = 0; p < sl; p++) {
-      for (let i = 0; i < dm; i++) {
-        ctx.fillStyle = heatCol(pe(p, i, dm));
-        ctx.fillRect(i * 8, p * 8, 8, 8);
-      }
+// ── Exp 2: single-dim wave ───────────────────────────────────────────────
+(() => {
+  const render = () => {
+    const i = +document.getElementById('dim').value;
+    document.getElementById('dimval').textContent = i;
+    const N = 200;
+    const pts = [];
+    for (let p = 0; p < N; p++) {
+      const y = PE(p * 0.5, i);
+      pts.push(`${(p/N)*600},${80 - y*70}`);
     }
-  };
+    document.getElementById('wave-path').setAttribute('d', 'M' + pts.join(' L'));
 
-  const renderTrace = () => {
-    const dm = +document.getElementById('dm').value;
-    const sl = +document.getElementById('sl').value;
-    const i = Math.min(dm - 1, +document.getElementById('tracei').value);
-    document.getElementById('traceival').textContent = i;
-    const c = document.getElementById('trace-canvas');
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#F6F1E7';
-    ctx.fillRect(0, 0, c.width, c.height);
-    // axes
-    ctx.strokeStyle = '#E6DBC4'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, 60); ctx.lineTo(c.width, 60); ctx.stroke();
-    // curve
-    ctx.strokeStyle = '#C2410C'; ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let p = 0; p < sl; p++) {
-      const x = (p / (sl - 1)) * (c.width - 20) + 10;
-      const y = 60 - pe(p, i, dm) * 45;
-      if (p === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    // dots
-    ctx.fillStyle = '#C2410C';
-    for (let p = 0; p < sl; p++) {
-      const x = (p / (sl - 1)) * (c.width - 20) + 10;
-      const y = 60 - pe(p, i, dm) * 45;
-      ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
-    }
+    const k = Math.floor(i/2);
+    const denom = Math.pow(10000, 2*k/64);
+    const wlen = 2*Math.PI*denom;
+    document.getElementById('wvlen').textContent = wlen < 1000 ? wlen.toFixed(1) : wlen.toExponential(1);
+    document.getElementById('wvfreq').textContent = (1/wlen).toExponential(2);
+    document.getElementById('wvfn').textContent = i % 2 === 0 ? 'sin' : 'cos';
   };
+  document.getElementById('dim').addEventListener('input', render);
+  render();
+})();
 
-  const renderAll = () => { renderHeatmap(); renderTrace(); };
-  ['dm','sl','tracei'].forEach(id => document.getElementById(id).addEventListener('input', renderAll));
-  renderAll();
+// ── Exp 3: PE similarity matrix ──────────────────────────────────────────
+(() => {
+  const N = 32, D = 64;
+  // Pre-compute PE rows
+  const rows = [];
+  for (let p = 0; p < N; p++) {
+    const r = [];
+    for (let i = 0; i < D; i++) r.push(PE(p, i));
+    rows.push(r);
+  }
+  // Compute similarity matrix
+  const cells = [];
+  let max = 0;
+  const sim = [];
+  for (let i = 0; i < N; i++) {
+    sim.push([]);
+    for (let j = 0; j < N; j++) {
+      const s = rows[i].reduce((a,x,k)=>a+x*rows[j][k],0);
+      sim[i].push(s);
+      if (Math.abs(s) > max) max = Math.abs(s);
+    }
+  }
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      const s = sim[i][j] / max;
+      cells.push(`<div class="pe-cell" style="background:${peColor(s)}"></div>`);
+    }
+  }
+  document.getElementById('pe-sim').innerHTML = cells.join('');
 })();
 </script>
 </body></html>

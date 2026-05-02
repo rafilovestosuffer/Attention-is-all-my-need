@@ -1,47 +1,147 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Attend · §2 From similarity to attention</title>
 <link rel="icon" href="../../assets/brand/logomark.svg">
 <link rel="stylesheet" href="chapter.css">
+<link rel="stylesheet" href="deep.css">
+<link rel="stylesheet" href="../../src/styles/dark.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 <script src="shell.js"></script>
+<script>document.documentElement.setAttribute('data-scheme','dark');</script>
+<style>.btn-mono{padding:6px 14px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer;color:var(--ink)}</style>
 </head><body>
 <div class="app" data-screen-label="Reader · §2">
   <aside class="sidebar" id="sidebar"></aside>
   <main class="reader">
     <div class="topbar" id="topbar"></div>
 
-    <div class="eyebrow">Part I · Foundations</div>
+    <div class="eyebrow">Part I · Foundations · §2</div>
     <h1 class="hero">From similarity <em>to attention.</em></h1>
-    <p class="lede">A list of dot-product scores is not yet an attention pattern. We need to turn raw numbers into weights that sum to one — a probability distribution over what to look at. That is what softmax does.</p>
+    <p class="lede">A list of dot-product scores is not yet attention. We need to turn raw numbers into weights that sum to one — a probability distribution over what to look at. Softmax does this, with two surprisingly subtle properties.</p>
 
-    <p>Start with six scores: one per token. These might be dot products of a query against six keys. They can be anything — positive, negative, tiny, huge.</p>
+    <h2>The definition</h2>
+    <div class="equation-block">
+      <div class="lbl">Softmax with temperature</div>
+      $$ \mathrm{softmax}(x)_i \;=\; \frac{e^{x_i / T}}{\sum_{j} e^{x_j / T}} $$
+    </div>
+    <p>Properties worth memorizing:</p>
+    <ul style="line-height:1.8">
+      <li><strong>Output is a probability distribution.</strong> All entries are in $(0,1)$ and sum to $1$.</li>
+      <li><strong>Translation-invariant.</strong> $\mathrm{softmax}(x + c\mathbf{1}) = \mathrm{softmax}(x)$ — only differences matter.</li>
+      <li><strong>Temperature controls sharpness.</strong> $T \to 0$ approaches one-hot argmax; $T \to \infty$ approaches uniform.</li>
+    </ul>
 
-    <h2>Softmax, with a dial</h2>
-    <p>Drag the <strong>temperature</strong> below. At <em class="math">T = 1</em> you get the textbook softmax. Push <em class="math">T</em> toward zero and the distribution sharpens into a one-hot argmax. Push it toward infinity and it flattens into a uniform average.</p>
+    <h2>Why exponentials?</h2>
+    <p>Why not just $x_i / \sum_j x_j$? Two reasons. First, scores can be negative — straight normalization breaks. Second, exponentials make the function smooth and differentiable, with a clean gradient: $\partial \mathrm{softmax}_i / \partial x_j = p_i(\delta_{ij} - p_j)$. That gradient is the only reason the network can learn at all.</p>
 
-    <div class="fig">
-      <div class="fig__title">Figure 3 · softmax temperature</div>
-      <div class="fig__body">
-        <div class="controls">
-          <div class="ctrl">
-            <span>temperature T</span>
-            <input id="T" type="range" min="0.1" max="4" step="0.05" value="1">
-            <span class="val" id="Tval">1.00</span>
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 1 — Temperature dial</div>
+      <h3>Watch a distribution melt and freeze.</h3>
+      <p>Five scores, fixed. Drag the temperature. At low $T$ the distribution sharpens to a single spike; at high $T$ it flattens toward uniform $1/5 = 0.20$.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 1 · softmax at varying temperature</div>
+        <div class="fig__body">
+          <div class="controls">
+            <div class="ctrl"><span>$T$</span>
+              <input id="t1-temp" type="range" min="0.1" max="5" step="0.05" value="1">
+              <span class="val" id="t1-tval">1.00</span>
+            </div>
           </div>
-          <div class="ctrl">
-            <span>randomize scores</span>
-            <button id="shuf" style="padding:4px 10px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer">shuffle</button>
+          <div style="margin-top:14px;display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:start">
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);line-height:1.9">
+              raw scores:<br>
+              x = [3.0, 2.5, 1.0, 0.5, -1.0]
+            </div>
+            <div id="t1-bars"></div>
+          </div>
+          <div class="stat-row" style="margin-top:18px">
+            <div class="stat-tile"><span class="l">max prob</span><span class="v" id="t1-max">—</span></div>
+            <div class="stat-tile"><span class="l">entropy (bits)</span><span class="v" id="t1-ent">—</span></div>
+            <div class="stat-tile"><span class="l">effective k</span><span class="v" id="t1-eff">—</span></div>
           </div>
         </div>
-        <div id="sm-viz" style="display:grid;grid-template-columns:60px 1fr 80px 1fr 80px;gap:10px 14px;align-items:center;font-family:var(--font-mono);font-size:11px"></div>
+        <div class="fig__cap"><b>Fig 1</b> — entropy is the right measure of "spread." Effective k = $2^{H}$ tells you how many options softmax is meaningfully attending to.</div>
       </div>
-      <div class="fig__cap"><b>Fig 3</b> — the height of each orange bar is the final attention weight. All six weights always sum to 1.</div>
     </div>
 
-    <h2>Why exponentiate?</h2>
-    <p>Softmax is <em class="math">exp(x<sub>i</sub>) / Σ exp(x<sub>j</sub>)</em>. The exponential is what makes small differences in scores blow up into big differences in weights — a score that is 2 units higher gets about <em class="math">e² ≈ 7×</em> the attention. That sharpness is why the model can make decisions instead of averaging everything into mush.</p>
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 2 — The translation invariance</div>
+      <h3>Adding a constant to every score does nothing.</h3>
+      <p>This is what lets us subtract the max for numerical stability — without it, $e^{x_i}$ overflows for large scores. Drag the offset; watch the output stay frozen.</p>
 
-    <div class="callout"><strong>One sentence to remember —</strong> softmax turns scores into weights that sum to 1, and its exponential gives the network the power to commit.</div>
+      <div class="fig">
+        <div class="fig__title">Figure 2 · softmax(x + c·1) = softmax(x)</div>
+        <div class="fig__body">
+          <div class="controls">
+            <div class="ctrl"><span>$c$</span>
+              <input id="t2-c" type="range" min="-10" max="100" step="0.5" value="0">
+              <span class="val" id="t2-cval">0.0</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:18px">
+            <div>
+              <div class="compare-label">shifted scores x + c</div>
+              <div id="t2-shift" style="font-family:var(--font-mono);font-size:11px;color:var(--ink-2);padding:10px;background:var(--paper);border:1px solid var(--paper-3);border-radius:4px"></div>
+            </div>
+            <div>
+              <div class="compare-label">softmax output (unchanged)</div>
+              <div id="t2-out" style="font-family:var(--font-mono);font-size:11px;color:var(--ink-2);padding:10px;background:var(--paper);border:1px solid var(--paper-3);border-radius:4px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 2</b> — try $c = 100$. Naively $e^{103}$ overflows; subtracting the max first gives stable arithmetic with no change in output.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 3 — The gradient</div>
+      <h3>Why exponentials make learning possible.</h3>
+      <p>The Jacobian $\partial p_i / \partial x_j = p_i(\delta_{ij} - p_j)$. The diagonal is $p_i(1-p_i)$ — maximized at $p_i = 0.5$, vanishing when $p_i$ is $0$ or $1$. <strong>This is why one-hot outputs kill training.</strong></p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 3 · softmax derivative ‖∂p/∂x‖ vs. peakedness</div>
+        <div class="fig__body">
+          <div class="controls">
+            <div class="ctrl"><span>peak score</span>
+              <input id="t3-peak" type="range" min="0" max="10" step="0.1" value="2">
+              <span class="val" id="t3-peakval">2.0</span>
+            </div>
+          </div>
+          <div class="compare-grid" style="margin-top:14px">
+            <div class="compare-col">
+              <div class="compare-label">softmax output p</div>
+              <div id="t3-prob"></div>
+            </div>
+            <div class="compare-col">
+              <div class="compare-label">gradient magnitude p(1−p)</div>
+              <div id="t3-grad"></div>
+            </div>
+          </div>
+          <div class="stat-row" style="margin-top:18px">
+            <div class="stat-tile"><span class="l">max p</span><span class="v" id="t3-pmax">—</span></div>
+            <div class="stat-tile"><span class="l">total ‖grad‖</span><span class="v" id="t3-gtot">—</span></div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 3</b> — push the peak score up. Probability concentrates, gradient evaporates. This is the same mechanism that motivates the $\sqrt{d_k}$ divisor in §3.2.</div>
+      </div>
+    </div>
+
+    <div class="callout"><strong>To remember —</strong> Softmax converts scores into a distribution, smoothly. Two facts to keep close: it ignores additive shifts, and its gradient dies as the output approaches one-hot.</div>
+
+    <h2>References</h2>
+    <p class="refs">
+    [1] Bridle (1990). <em>Probabilistic Interpretation of Feedforward Classification Networks.</em> — early formalization of softmax.<br>
+    [2] Goodfellow et al. (2016). <em>Deep Learning.</em> §6.2.2 — softmax and its gradient.<br>
+    [3] Vaswani et al. (2017). §3.2.1 — softmax in scaled dot-product attention.
+    </p>
 
     <nav class="fn-nav" id="footer-nav"></nav>
   </main>
@@ -49,44 +149,65 @@
 
 <script>
 AttendShell.mount({ chapter: "Chapter 2", section: "§2 From similarity to attention", progress: 28, activeId: "§2" });
+const v = JSON.parse(localStorage.getItem('attend-progress') || '[]');
+if (!v.includes('§2')) { v.push('§2'); localStorage.setItem('attend-progress', JSON.stringify(v)); }
 
+const fmt = AttendShell.fmt, softmax = AttendShell.softmax;
+const entropy = p => -p.reduce((s,pi)=>s+(pi>0?pi*Math.log2(pi):0),0);
+
+const renderBars = (id, values, color = 'var(--query)') => {
+  const max = Math.max(...values, 0.01);
+  document.getElementById(id).innerHTML = values.map((w, i) =>
+    `<div class="bar-row"><div class="lbl">x${i}</div><div class="track"><div class="fill" style="width:${(w/max)*100}%;background:${color}"></div></div><div class="v">${fmt(w,3)}</div></div>`
+  ).join('');
+};
+
+// ── Experiment 1 — Temperature ────────────────────────────────────────────
 (() => {
-  const viz = document.getElementById('sm-viz');
-  const Tinp = document.getElementById('T');
-  const Tval = document.getElementById('Tval');
-  let scores = [1.2, 2.4, 0.3, -0.5, 1.2, 0.8];
-  const TOKENS = ["the", "cat", "sat", "on", "the", "mat"];
-
+  const X = [3.0, 2.5, 1.0, 0.5, -1.0];
   const render = () => {
-    const T = +Tinp.value;
-    Tval.textContent = AttendShell.fmt(T);
-    const ws = AttendShell.softmax(scores, T);
-    const maxS = Math.max(...scores.map(Math.abs));
-
-    viz.innerHTML = scores.map((s, i) => {
-      const w = ws[i];
-      const scoreBarW = (Math.abs(s) / maxS) * 100;
-      const scoreBarC = s >= 0 ? 'var(--key)' : 'var(--err)';
-      return `
-        <span class="tok-q" style="font-size:14px;text-align:right">${TOKENS[i]}</span>
-        <div style="height:18px;background:var(--paper-2);border-radius:2px;position:relative">
-          <div style="position:absolute;${s>=0?'left:50%':'right:50%'};top:0;bottom:0;width:${scoreBarW/2}%;background:${scoreBarC};border-radius:1px"></div>
-          <div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--ink-4)"></div>
-        </div>
-        <span style="text-align:right">${AttendShell.fmt(s)}</span>
-        <div style="height:18px;background:var(--paper-2);border-radius:2px;position:relative;overflow:hidden">
-          <div style="position:absolute;left:0;top:0;bottom:0;width:${w*100}%;background:${AttendShell.heatVar(w)};transition:width 120ms"></div>
-        </div>
-        <span style="text-align:right;color:var(--heat-5);font-weight:600">${AttendShell.fmt(w, 3)}</span>
-      `;
-    }).join('');
+    const T = +document.getElementById('t1-temp').value;
+    document.getElementById('t1-tval').textContent = T.toFixed(2);
+    const p = softmax(X, T);
+    renderBars('t1-bars', p);
+    document.getElementById('t1-max').textContent = fmt(Math.max(...p), 3);
+    const H = entropy(p);
+    document.getElementById('t1-ent').textContent = fmt(H, 2);
+    document.getElementById('t1-eff').textContent = fmt(Math.pow(2, H), 1);
   };
+  document.getElementById('t1-temp').addEventListener('input', render);
+  render();
+})();
 
-  Tinp.addEventListener('input', render);
-  document.getElementById('shuf').addEventListener('click', () => {
-    scores = Array.from({ length: 6 }, () => (Math.random() * 5 - 1.5));
-    render();
-  });
+// ── Experiment 2 — Translation invariance ─────────────────────────────────
+(() => {
+  const X = [3.0, 2.5, 1.0, 0.5, -1.0];
+  const render = () => {
+    const c = +document.getElementById('t2-c').value;
+    document.getElementById('t2-cval').textContent = c.toFixed(1);
+    const shifted = X.map(x => x + c);
+    const p = softmax(shifted);
+    document.getElementById('t2-shift').textContent = '[' + shifted.map(x => x.toFixed(1)).join(', ') + ']';
+    document.getElementById('t2-out').textContent = '[' + p.map(x => x.toFixed(3)).join(', ') + ']';
+  };
+  document.getElementById('t2-c').addEventListener('input', render);
+  render();
+})();
+
+// ── Experiment 3 — Gradient ───────────────────────────────────────────────
+(() => {
+  const render = () => {
+    const peak = +document.getElementById('t3-peak').value;
+    document.getElementById('t3-peakval').textContent = peak.toFixed(1);
+    const X = [peak, 0, 0, 0, 0];
+    const p = softmax(X);
+    const grad = p.map(pi => pi * (1 - pi));
+    renderBars('t3-prob', p);
+    renderBars('t3-grad', grad, 'var(--key)');
+    document.getElementById('t3-pmax').textContent = fmt(Math.max(...p), 3);
+    document.getElementById('t3-gtot').textContent = fmt(grad.reduce((s,g)=>s+g,0), 3);
+  };
+  document.getElementById('t3-peak').addEventListener('input', render);
   render();
 })();
 </script>

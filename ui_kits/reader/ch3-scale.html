@@ -1,59 +1,185 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>Attend · §3.2 Why we scale by √dₖ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attend · §3.2 Why we scale by √dₖ — deep dive</title>
 <link rel="icon" href="../../assets/brand/logomark.svg">
 <link rel="stylesheet" href="chapter.css">
+<link rel="stylesheet" href="../../src/styles/dark.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 <script src="shell.js"></script>
+<script>document.documentElement.setAttribute('data-scheme','dark');</script>
+<style>
+  .exp { margin: 36px 0; }
+  .exp h3 { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 22px; color: var(--ink); margin: 0 0 6px; }
+  .exp .exp-sub { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--query); margin-bottom: 14px; }
+
+  /* Histogram */
+  .hist { display: flex; align-items: flex-end; gap: 1px; height: 140px; padding: 8px 0; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 6px; padding-left: 12px; padding-right: 12px; position: relative; }
+  .hist-bar { flex: 1; min-width: 1px; background: var(--query); transition: height 200ms; border-radius: 1px 1px 0 0; }
+  .hist-axis { position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: var(--paper-edge); }
+  .hist-zero { position: absolute; bottom: 0; width: 1px; background: var(--ink-3); height: 100%; }
+  .hist-tick { position: absolute; bottom: -18px; font-family: var(--font-mono); font-size: 9px; color: var(--ink-4); transform: translateX(-50%); }
+
+  /* Comparison side-by-side */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+  .compare-col { background: var(--paper); border: 1px solid var(--paper-3); border-radius: 8px; padding: 14px; }
+  .compare-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-4); margin-bottom: 8px; }
+  .compare-stat { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+  /* Theoretical curve */
+  .curve-container { padding: 16px 20px; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 6px; }
+
+  /* Gradient demo */
+  .grad-row { display: grid; grid-template-columns: 60px 1fr 80px; gap: 12px; align-items: center; margin: 6px 0; }
+  .grad-label { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .grad-bar-wrap { height: 10px; background: var(--paper); border-radius: 5px; overflow: hidden; border: 1px solid var(--paper-3); }
+  .grad-bar { height: 100%; background: linear-gradient(90deg, var(--query) 0%, var(--query) 100%); transition: width 250ms; }
+  .grad-val { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+
+  .equation-block { background: var(--paper); border: 1px solid var(--paper-3); border-left: 3px solid var(--query); border-radius: 0 6px 6px 0; padding: 18px 22px; margin: 18px 0; font-family: var(--font-display); font-size: 16px; }
+  .equation-block .lbl { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--query); margin-bottom: 10px; }
+
+  .stat-tile { display: inline-flex; flex-direction: column; gap: 2px; padding: 10px 14px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 6px; min-width: 90px; }
+  .stat-tile .l { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-4); }
+  .stat-tile .v { font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+</style>
 </head><body>
 <div class="app" data-screen-label="Reader · §3.2">
   <aside class="sidebar" id="sidebar"></aside>
   <main class="reader">
     <div class="topbar" id="topbar"></div>
 
-    <div class="eyebrow">Part II · Scaled dot-product attention</div>
+    <div class="eyebrow">Part II · Scaled dot-product attention · §3.2.1</div>
     <h1 class="hero">Why we scale <em>by √d<sub>k</sub>.</em></h1>
-    <p class="lede">In the paper, one tiny divisor prevents softmax from collapsing. Raise the dimension, watch the attention pattern sharpen into a single spike, and the fix becomes obvious.</p>
+    <p class="lede">Vaswani et al. include one tiny divisor that makes the difference between a Transformer that learns and one that doesn't. Below: the proof, three live experiments, and the gradient consequence in numbers you can drag.</p>
 
-    <p>If <em class="tok-q">q</em> and <em class="tok-k">k</em> are vectors of length <em class="math">d<sub>k</sub></em> with independent, unit-variance entries, the dot product <em class="math">q · k</em> has <strong>variance <em>d<sub>k</sub></em></strong>. Grow <em class="math">d<sub>k</sub></em> from 4 to 64 to 512, and the raw scores spread wider and wider — feeding softmax a distribution it can only respond to with a near-one-hot spike.</p>
+    <h2>The claim</h2>
+    <p>Suppose query <em class="tok-q">q</em> and key <em class="tok-k">k</em> are <em class="math">d<sub>k</sub></em>-dimensional vectors with i.i.d. components, each with mean 0 and variance 1. Then:</p>
 
-    <h2>Live experiment</h2>
-    <p>Below we sample 6 queries × 6 keys with i.i.d. entries and compute the attention weights of the first query. Slide <em class="math">d<sub>k</sub></em> up and toggle the √d<sub>k</sub> divisor on and off. Watch what happens without it.</p>
-
-    <div class="fig">
-      <div class="fig__title">Figure 4 · variance vs scaling</div>
-      <div class="fig__body">
-        <div class="controls">
-          <div class="ctrl"><span>d<sub>k</sub></span>
-            <input id="dk" type="range" min="2" max="256" step="1" value="8">
-            <span class="val" id="dkval">8</span>
-          </div>
-          <div class="ctrl"><input type="checkbox" id="scaled" checked> <label for="scaled">divide by √d<sub>k</sub></label></div>
-          <div class="ctrl"><button id="resample" style="padding:4px 10px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer">resample</button></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:12px">
-          <div>
-            <div class="matrix__label" style="color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-family:var(--font-sans);font-weight:600">Raw scores (row 0)</div>
-            <div id="raw" style="display:flex;gap:3px;margin-top:8px"></div>
-            <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:8px">std = <span id="stdval">—</span></div>
-          </div>
-          <div>
-            <div class="matrix__label" style="color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-family:var(--font-sans);font-weight:600">Softmax weights</div>
-            <div id="soft" style="display:flex;gap:3px;margin-top:8px"></div>
-            <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:8px">max = <span id="maxw">—</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="fig__cap"><b>Fig 4</b> — without the divisor, softmax collapses to a near-one-hot as d<sub>k</sub> grows. With it, the spread is held constant regardless of dimension.</div>
+    <div class="equation-block">
+      <div class="lbl">Lemma — variance of the dot product</div>
+      $$ \mathbb{E}[\,q \cdot k\,] = 0, \qquad \mathrm{Var}(q \cdot k) = d_k $$
     </div>
 
-    <h2>The math</h2>
-    <p>For independent unit-variance <em class="math">q<sub>i</sub>, k<sub>i</sub></em>:</p>
-    <p style="text-align:center;font-family:var(--font-display);font-style:italic;font-size:20px;color:var(--ink);margin:20px 0">
-      Var(q · k) = Σ Var(q<sub>i</sub>k<sub>i</sub>) = d<sub>k</sub>
-    </p>
-    <p>Dividing by <em class="math">√d<sub>k</sub></em> rescales that variance back to 1. Softmax inputs stay in a regime where gradients flow — which is exactly why the paper includes the divisor even though nothing else in the expression demands it.</p>
+    <p><strong>Proof in one line.</strong> The dot product is $q \cdot k = \sum_{i=1}^{d_k} q_i k_i$. Each $q_i k_i$ has mean $0$ and variance $\mathbb{E}[q_i^2]\mathbb{E}[k_i^2] = 1$ (since $q_i \perp k_i$, both unit-variance). Independence makes variances add: $\mathrm{Var}(q \cdot k) = \sum_i 1 = d_k$. So the standard deviation grows like $\sqrt{d_k}$.</p>
 
-    <div class="callout"><strong>One sentence to remember —</strong> √d<sub>k</sub> keeps softmax's temperature constant as the model gets wider.</div>
+    <p>The fix: divide by $\sqrt{d_k}$. The variance returns to $1$, regardless of dimension. <span style="color:var(--query)">Softmax now sees inputs at a constant scale</span> as the model gets wider.</p>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 1 — Empirical variance</div>
+      <h3>Sample 5,000 dot products. Watch the variance.</h3>
+      <p>We'll draw $q, k \sim \mathcal{N}(0, I_{d_k})$, compute $q \cdot k$ five thousand times, and plot the empirical distribution. Theory predicts $\mathrm{Var} = d_k$ unscaled, $\mathrm{Var} = 1$ scaled.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 1 · empirical distribution of dot products (5000 samples)</div>
+        <div class="fig__body">
+          <div class="controls">
+            <div class="ctrl"><span>$d_k$</span>
+              <input id="ex1-dk" type="range" min="2" max="512" step="1" value="64">
+              <span class="val" id="ex1-dkval">64</span>
+            </div>
+            <div class="ctrl"><button id="ex1-resample" style="padding:6px 14px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer;color:var(--ink)">resample</button></div>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-col">
+              <div class="compare-label">unscaled · raw $q \cdot k$</div>
+              <div id="ex1-hist-raw" class="hist"></div>
+              <div class="compare-stat">empirical variance: <span id="ex1-var-raw" style="color:var(--query)">—</span></div>
+              <div class="compare-stat">theory: $d_k$ = <span id="ex1-theory-raw">64</span></div>
+            </div>
+            <div class="compare-col">
+              <div class="compare-label">scaled · $q \cdot k / \sqrt{d_k}$</div>
+              <div id="ex1-hist-scaled" class="hist"></div>
+              <div class="compare-stat">empirical variance: <span id="ex1-var-scaled" style="color:var(--key)">—</span></div>
+              <div class="compare-stat">theory: $1.00$</div>
+            </div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 1</b> — left grows wider as $d_k$ increases; right stays the same. The divisor is exactly the rescaling that holds variance constant.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 2 — Softmax collapse</div>
+      <h3>What does softmax do to a high-variance input?</h3>
+      <p>Six keys, one query, $d_k$ adjustable. We compute $\mathrm{softmax}(q K^\top)$ and $\mathrm{softmax}(q K^\top / \sqrt{d_k})$ side by side. Watch the unscaled side collapse to a one-hot as $d_k$ grows.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 2 · softmax with vs. without scaling</div>
+        <div class="fig__body">
+          <div class="controls">
+            <div class="ctrl"><span>$d_k$</span>
+              <input id="ex2-dk" type="range" min="2" max="512" step="1" value="8">
+              <span class="val" id="ex2-dkval">8</span>
+            </div>
+            <div class="ctrl"><button id="ex2-resample" style="padding:6px 14px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer;color:var(--ink)">resample</button></div>
+          </div>
+
+          <div class="compare-grid">
+            <div class="compare-col">
+              <div class="compare-label">unscaled — softmax(qKᵀ)</div>
+              <div id="ex2-bars-raw" style="display:flex;flex-direction:column;gap:4px"></div>
+              <div class="compare-stat">max weight: <span id="ex2-max-raw" style="color:var(--query)">—</span> · entropy: <span id="ex2-ent-raw">—</span> bits</div>
+            </div>
+            <div class="compare-col">
+              <div class="compare-label">scaled — softmax(qKᵀ/√dₖ)</div>
+              <div id="ex2-bars-scaled" style="display:flex;flex-direction:column;gap:4px"></div>
+              <div class="compare-stat">max weight: <span id="ex2-max-scaled" style="color:var(--key)">—</span> · entropy: <span id="ex2-ent-scaled">—</span> bits</div>
+            </div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 2</b> — at $d_k = 512$ the unscaled side is nearly one-hot (one weight ≈ 1, rest ≈ 0). The scaled side keeps a healthy spread.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 3 — The gradient that vanishes</div>
+      <h3>This is why training would fail without it.</h3>
+      <p>Softmax's gradient is $\partial L/\partial x_i = p_i (\mathbb{1}_{i=t} - p_t)$ where $p$ is the output and $t$ the target. If $p$ is one-hot, every component of this vector is essentially zero — no signal flows to $W_Q$, $W_K$, $W_V$. The unscaled side trains to a halt.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 3 · gradient magnitude vs $d_k$</div>
+        <div class="fig__body">
+          <div id="grad-rows" style="display:flex;flex-direction:column;gap:4px;padding:6px 0"></div>
+          <div class="stat-row" style="margin-top:18px">
+            <div class="stat-tile"><span class="l">unscaled grad norm at d_k=64</span><span class="v" id="grad-unscaled">—</span></div>
+            <div class="stat-tile"><span class="l">scaled grad norm at d_k=64</span><span class="v" id="grad-scaled">—</span></div>
+            <div class="stat-tile"><span class="l">ratio</span><span class="v" id="grad-ratio">—</span></div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 3</b> — gradient magnitude shown for $d_k \in \{4, 16, 64, 256, 512\}$. Without scaling, gradient norm decays exponentially; with scaling, it's stable.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">The takeaway</div>
+      <h3>One line. Three consequences.</h3>
+      <p>The $\sqrt{d_k}$ divisor is doing all of these at once:</p>
+      <ol style="line-height:1.85;padding-left:24px">
+        <li><strong>Holds variance constant.</strong> $\mathrm{Var}(q \cdot k / \sqrt{d_k}) = 1$ regardless of model width.</li>
+        <li><strong>Prevents softmax saturation.</strong> Inputs stay in the regime where multiple values get meaningful probability mass.</li>
+        <li><strong>Enables gradient flow.</strong> $\partial \mathrm{softmax}$ is nontrivial only when the output is not one-hot.</li>
+      </ol>
+      <p>It's a one-character change with a load-bearing role. Vaswani et al. didn't invent the dot product, didn't invent softmax, didn't invent attention. But they noticed this — and that's why the paper works.</p>
+    </div>
+
+    <div class="callout"><strong>To remember —</strong> $\sqrt{d_k}$ keeps softmax's effective temperature constant as the model gets wider. Without it, attention sharpens automatically with depth and the gradient dies.</div>
+
+    <h2>References</h2>
+    <p style="font-family:var(--font-mono);font-size:12px;color:var(--ink-3);line-height:1.7">
+    [1] Vaswani et al. (2017). <em>Attention Is All You Need</em>. NeurIPS 30. §3.2.1, footnote 4.<br>
+    [2] Bahdanau, Cho & Bengio (2014). <em>Neural Machine Translation by Jointly Learning to Align and Translate</em>. — additive (un-scaled) attention.<br>
+    [3] Britz et al. (2017). <em>Massive Exploration of Neural Machine Translation Architectures</em>. — empirical evidence that scale matters.
+    </p>
 
     <nav class="fn-nav" id="footer-nav"></nav>
   </main>
@@ -62,45 +188,167 @@
 <script>
 AttendShell.mount({ chapter: "Chapter 3", section: "§3.2 Why we scale by √dₖ", progress: 42, activeId: "§3.2" });
 
-(() => {
-  const dkInp = document.getElementById('dk');
-  const scaledChk = document.getElementById('scaled');
-  let samples = null;
+// Mark visited
+const v = JSON.parse(localStorage.getItem('attend-progress') || '[]');
+if (!v.includes('§3.2')) { v.push('§3.2'); localStorage.setItem('attend-progress', JSON.stringify(v)); }
 
-  const sample = (dk) => {
-    const q = Array.from({length: dk}, () => AttendShell.randn());
-    const K = Array.from({length: 6}, () => Array.from({length: dk}, () => AttendShell.randn()));
-    return { q, K };
-  };
+// ── Math helpers ───────────────────────────────────────────────────────────
+const randn = () => { let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+const dot = (a,b) => a.reduce((s,x,i)=>s+x*b[i],0);
+const fmt = (n,d=2) => { const s=n.toFixed(d); return s==='-0.00'?'0.00':s; };
+const softmax = (xs,t=1) => { const sc=xs.map(x=>x/t),m=Math.max(...sc),ex=sc.map(x=>Math.exp(x-m)),s=ex.reduce((a,b)=>a+b,0); return ex.map(x=>x/s); };
+const variance = xs => { const m=xs.reduce((a,b)=>a+b,0)/xs.length; return xs.reduce((a,x)=>a+(x-m)**2,0)/xs.length; };
+const entropy = p => -p.reduce((s,pi)=>s+(pi>0?pi*Math.log2(pi):0),0);
 
-  const render = () => {
-    const dk = +dkInp.value;
-    document.getElementById('dkval').textContent = dk;
-    if (!samples || samples.q.length !== dk) samples = sample(dk);
-    const { q, K } = samples;
-    const raw = K.map(k => AttendShell.dot(q, k));
-    const scaled = scaledChk.checked ? raw.map(x => x / Math.sqrt(dk)) : raw;
-    const ws = AttendShell.softmax(scaled, 1);
+// ── Histogram renderer ─────────────────────────────────────────────────────
+const histogram = (vals, bins, range) => {
+  const [mn, mx] = range;
+  const w = (mx - mn) / bins;
+  const counts = Array(bins).fill(0);
+  vals.forEach(v => {
+    const idx = Math.max(0, Math.min(bins - 1, Math.floor((v - mn) / w)));
+    counts[idx]++;
+  });
+  return counts;
+};
 
-    const mean = raw.reduce((a,b)=>a+b,0) / raw.length;
-    const std = Math.sqrt(raw.reduce((a,b)=>a+(b-mean)**2,0) / raw.length);
-    document.getElementById('stdval').textContent = AttendShell.fmt(std);
-    document.getElementById('maxw').textContent = AttendShell.fmt(Math.max(...ws), 3);
+const renderHist = (id, vals, range) => {
+  const bins = 40;
+  const counts = histogram(vals, bins, range);
+  const max = Math.max(...counts, 1);
+  const el = document.getElementById(id);
+  const zeroPos = ((0 - range[0]) / (range[1] - range[0])) * 100;
+  el.innerHTML = counts.map(c => `<div class="hist-bar" style="height:${(c/max)*100}%"></div>`).join('') +
+    `<div class="hist-zero" style="left:${zeroPos}%"></div>` +
+    `<div class="hist-tick" style="left:0%">${range[0].toFixed(0)}</div>` +
+    `<div class="hist-tick" style="left:${zeroPos}%">0</div>` +
+    `<div class="hist-tick" style="left:100%">${range[1].toFixed(0)}</div>`;
+};
 
-    const maxAbs = Math.max(...raw.map(Math.abs), 1);
-    document.getElementById('raw').innerHTML = raw.map(s => {
-      const norm = (s + maxAbs) / (2 * maxAbs);
-      return `<div class="cell" style="width:54px;height:54px;font-size:11px;background:${AttendShell.heatVar(norm)}">${AttendShell.fmt(s,1)}</div>`;
-    }).join('');
-    document.getElementById('soft').innerHTML = ws.map(w =>
-      `<div class="cell" style="width:54px;height:54px;font-size:11px;background:${AttendShell.heatVar(w)}">${AttendShell.fmt(w,3)}</div>`
+// ── Experiment 1 — Empirical variance ──────────────────────────────────────
+const ex1Render = () => {
+  const dk = +document.getElementById('ex1-dk').value;
+  document.getElementById('ex1-dkval').textContent = dk;
+  document.getElementById('ex1-theory-raw').textContent = dk;
+
+  const N = 5000;
+  const raw = [], scaled = [];
+  for (let i = 0; i < N; i++) {
+    const q = Array.from({length: dk}, randn);
+    const k = Array.from({length: dk}, randn);
+    const s = dot(q, k);
+    raw.push(s);
+    scaled.push(s / Math.sqrt(dk));
+  }
+
+  const rawRange = [-3 * Math.sqrt(dk), 3 * Math.sqrt(dk)];
+  const scaledRange = [-3, 3];
+
+  renderHist('ex1-hist-raw', raw, rawRange);
+  renderHist('ex1-hist-scaled', scaled, scaledRange);
+
+  document.getElementById('ex1-var-raw').textContent = fmt(variance(raw));
+  document.getElementById('ex1-var-scaled').textContent = fmt(variance(scaled));
+};
+document.getElementById('ex1-dk').addEventListener('input', ex1Render);
+document.getElementById('ex1-resample').addEventListener('click', ex1Render);
+
+// ── Experiment 2 — Softmax collapse ────────────────────────────────────────
+let ex2Cache = null;
+const ex2Sample = (dk) => {
+  const q = Array.from({length: dk}, randn);
+  const K = Array.from({length: 6}, () => Array.from({length: dk}, randn));
+  return { q, K };
+};
+const ex2Render = (resample = false) => {
+  const dk = +document.getElementById('ex2-dk').value;
+  document.getElementById('ex2-dkval').textContent = dk;
+  if (resample || !ex2Cache || ex2Cache.q.length !== dk) ex2Cache = ex2Sample(dk);
+
+  const { q, K } = ex2Cache;
+  const raw = K.map(k => dot(q, k));
+  const scaledScores = raw.map(x => x / Math.sqrt(dk));
+  const wRaw = softmax(raw);
+  const wScaled = softmax(scaledScores);
+
+  const renderBars = (id, ws) => {
+    document.getElementById(id).innerHTML = ws.map((w, i) =>
+      `<div style="display:grid;grid-template-columns:30px 1fr 50px;gap:8px;align-items:center">
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--ink-3)">k${i}</div>
+        <div style="height:14px;background:var(--paper-2);border-radius:7px;overflow:hidden">
+          <div style="height:100%;width:${w*100}%;background:var(--query);transition:width 200ms"></div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--ink-2);text-align:right;font-variant-numeric:tabular-nums">${fmt(w,3)}</div>
+      </div>`
     ).join('');
   };
+  renderBars('ex2-bars-raw', wRaw);
+  renderBars('ex2-bars-scaled', wScaled);
 
-  dkInp.addEventListener('input', render);
-  scaledChk.addEventListener('change', render);
-  document.getElementById('resample').addEventListener('click', () => { samples = null; render(); });
-  render();
-})();
+  document.getElementById('ex2-max-raw').textContent = fmt(Math.max(...wRaw), 3);
+  document.getElementById('ex2-max-scaled').textContent = fmt(Math.max(...wScaled), 3);
+  document.getElementById('ex2-ent-raw').textContent = fmt(entropy(wRaw), 2);
+  document.getElementById('ex2-ent-scaled').textContent = fmt(entropy(wScaled), 2);
+};
+document.getElementById('ex2-dk').addEventListener('input', () => ex2Render(false));
+document.getElementById('ex2-resample').addEventListener('click', () => ex2Render(true));
+
+// ── Experiment 3 — Gradient magnitude ──────────────────────────────────────
+// For softmax(x), the gradient norm w.r.t. inputs scales with how spread-out
+// the output is. We measure ||∇softmax|| ≈ sqrt(Σ p_i² (1 - p_i)²) — proxy
+// for trainable gradient magnitude. Average over many samples.
+const gradNorm = (dk, scaled) => {
+  const N = 200;
+  let total = 0;
+  for (let n = 0; n < N; n++) {
+    const q = Array.from({length: dk}, randn);
+    const K = Array.from({length: 6}, () => Array.from({length: dk}, randn));
+    let raw = K.map(k => dot(q, k));
+    if (scaled) raw = raw.map(x => x / Math.sqrt(dk));
+    const p = softmax(raw);
+    const norm = Math.sqrt(p.reduce((s, pi) => s + pi * pi * (1 - pi) * (1 - pi), 0));
+    total += norm;
+  }
+  return total / N;
+};
+
+const ex3Render = () => {
+  const dks = [4, 16, 64, 256, 512];
+  const data = dks.map(dk => ({ dk, unscaled: gradNorm(dk, false), scaled: gradNorm(dk, true) }));
+  const max = Math.max(...data.flatMap(d => [d.unscaled, d.scaled]));
+
+  const html = data.map(({ dk, unscaled, scaled }) => `
+    <div style="margin-bottom:14px">
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--ink-3);margin-bottom:4px">$d_k = ${dk}$</div>
+      <div class="grad-row">
+        <div class="grad-label">unscaled</div>
+        <div class="grad-bar-wrap"><div class="grad-bar" style="width:${(unscaled/max)*100}%;background:var(--query)"></div></div>
+        <div class="grad-val">${fmt(unscaled, 3)}</div>
+      </div>
+      <div class="grad-row">
+        <div class="grad-label">scaled</div>
+        <div class="grad-bar-wrap"><div class="grad-bar" style="width:${(scaled/max)*100}%;background:var(--key)"></div></div>
+        <div class="grad-val">${fmt(scaled, 3)}</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('grad-rows').innerHTML = html;
+
+  const u64 = data.find(d => d.dk === 64).unscaled;
+  const s64 = data.find(d => d.dk === 64).scaled;
+  document.getElementById('grad-unscaled').textContent = fmt(u64, 3);
+  document.getElementById('grad-scaled').textContent = fmt(s64, 3);
+  document.getElementById('grad-ratio').textContent = (s64 / u64).toFixed(1) + '×';
+
+  // Re-render KaTeX after content insertion
+  if (typeof renderMathInElement !== 'undefined') {
+    setTimeout(() => renderMathInElement(document.getElementById('grad-rows'), {delimiters:[{left:'$',right:'$',display:false}]}), 60);
+  }
+};
+
+// Initial render
+ex1Render();
+ex2Render(true);
+ex3Render();
 </script>
 </body></html>

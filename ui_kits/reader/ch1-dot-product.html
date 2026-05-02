@@ -1,130 +1,290 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Attend · §1 A vector, a dot product</title>
 <link rel="icon" href="../../assets/brand/logomark.svg">
 <link rel="stylesheet" href="chapter.css">
+<link rel="stylesheet" href="deep.css">
+<link rel="stylesheet" href="../../src/styles/dark.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
 <script src="shell.js"></script>
+<script>document.documentElement.setAttribute('data-scheme','dark');</script>
+<style>
+  .vec-stage { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+  .vec-canvas { background: var(--paper); border: 1px solid var(--paper-3); border-radius: 8px; aspect-ratio: 1; position: relative; cursor: crosshair; }
+  .vec-readout { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); line-height: 1.9; }
+  .vec-readout .lbl { color: var(--ink-4); display: inline-block; min-width: 90px; }
+  .vec-readout b { color: var(--query); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stride-bar { height: 60px; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 6px; position: relative; overflow: hidden; }
+  .stride-mark { position: absolute; top: 4px; bottom: 4px; width: 2px; background: var(--query); }
+  .stride-bar .center { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--paper-edge); }
+</style>
 </head><body>
 <div class="app" data-screen-label="Reader · §1">
   <aside class="sidebar" id="sidebar"></aside>
   <main class="reader">
     <div class="topbar" id="topbar"></div>
 
-    <div class="eyebrow">Part I · Foundations</div>
+    <div class="eyebrow">Part I · Foundations · §1</div>
     <h1 class="hero">A vector, <em>a dot product.</em></h1>
-    <p class="lede">Before "attention" is anything, it is a way of asking how similar two vectors are. That operation — the dot product — is the smallest piece of the Transformer. Get it in your bones and the rest is bookkeeping.</p>
+    <p class="lede">Before "attention" is anything, it is a way of asking how similar two vectors are. The dot product is the smallest piece of the Transformer — and the only operation that matters for the next four chapters.</p>
 
-    <p>Two vectors. Say the model has learned to represent the word <em class="math">cat</em> as a four-number sketch:</p>
-    <div class="fig">
-      <div class="fig__title">Figure 1 · a single 4-vector</div>
-      <div class="fig__body" id="fig-vector-cat" style="display:flex;gap:12px;align-items:center;justify-content:center;padding:32px"></div>
-      <div class="fig__cap"><b>Fig 1</b> — each cell is one dimension. Nothing about any single number means anything on its own. Meaning lives in the <em>pattern</em>.</div>
+    <h2>The definition</h2>
+    <p>For two vectors $a, b \in \mathbb{R}^d$, the dot product is the sum of element-wise products:</p>
+
+    <div class="equation-block">
+      <div class="lbl">Definition</div>
+      $$ a \cdot b \;=\; \sum_{i=1}^{d} a_i\, b_i \;=\; \|a\| \, \|b\| \, \cos\theta $$
     </div>
 
-    <p>The dot product of two such vectors is one number. It is bigger when the vectors point the same way, zero when they are perpendicular, and negative when they disagree. That is all attention knows how to ask: <em class="math">"are these two things aligned?"</em></p>
+    <p>Two equivalent forms — algebraic (a sum) and geometric (a product of lengths and an angle's cosine). The equivalence is what makes the dot product useful: it lets us read <em>geometry</em> off a stream of numbers.</p>
 
-    <h2>Drag the second vector</h2>
-    <p>Below, the <em class="tok-q">query</em> is fixed. Drag the tip of the <em class="tok-k">key</em> and watch the dot product update. Notice: same direction wins, opposite direction loses, orthogonal gives zero.</p>
+    <p>Three cases worth holding in your head:</p>
+    <ul style="line-height:1.8">
+      <li>$a \cdot b > 0$ — the vectors point in <strong>roughly the same direction</strong> (acute angle).</li>
+      <li>$a \cdot b = 0$ — they are <strong>orthogonal</strong>; one carries no information about the other.</li>
+      <li>$a \cdot b < 0$ — they point in <strong>opposite</strong> directions (obtuse).</li>
+    </ul>
 
-    <div class="fig">
-      <div class="fig__title">Figure 2 · interactive dot product</div>
-      <div class="fig__body" style="display:grid;grid-template-columns:1fr 240px;gap:32px;align-items:center">
-        <svg id="dp-svg" viewBox="0 0 400 300" style="width:100%;max-width:460px;justify-self:center"></svg>
-        <div id="dp-readout" style="font-family:var(--font-mono);font-size:13px;line-height:2"></div>
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 1 — Drag two vectors</div>
+      <h3>Geometry, on demand.</h3>
+      <p>Drag either head. Watch <em class="math">a \cdot b</em>, the angle, and $\cos\theta$ track in real time. The dot product is positive in the green region, zero on the perpendicular line, negative in the red.</p>
+
+      <div class="fig">
+        <div class="fig__title">Figure 1 · 2D dot product, interactive</div>
+        <div class="fig__body">
+          <div class="vec-stage">
+            <div class="vec-canvas" id="vec-canvas">
+              <svg id="vec-svg" viewBox="-100 -100 200 200" style="width:100%;height:100%;display:block">
+                <defs>
+                  <marker id="arrowQ" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--query)"/></marker>
+                  <marker id="arrowK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--key)"/></marker>
+                </defs>
+                <!-- gridlines -->
+                <line x1="-100" y1="0" x2="100" y2="0" stroke="var(--paper-edge)" stroke-width="0.5"></line>
+                <line x1="0" y1="-100" x2="0" y2="100" stroke="var(--paper-edge)" stroke-width="0.5"></line>
+                <!-- perpendicular dashed -->
+                <line id="perp" stroke="var(--ink-4)" stroke-width="0.5" stroke-dasharray="2 2"></line>
+                <!-- arc -->
+                <path id="arc" fill="var(--heat-2)" opacity="0.4"></path>
+                <!-- vectors -->
+                <line id="va" x1="0" y1="0" stroke="var(--query)" stroke-width="2.5" marker-end="url(#arrowQ)"></line>
+                <line id="vb" x1="0" y1="0" stroke="var(--key)" stroke-width="2.5" marker-end="url(#arrowK)"></line>
+                <!-- handles -->
+                <circle id="ha" r="6" fill="var(--query)" style="cursor:grab"></circle>
+                <circle id="hb" r="6" fill="var(--key)" style="cursor:grab"></circle>
+                <!-- labels -->
+                <text id="la" font-family="var(--font-display)" font-style="italic" font-size="9" fill="var(--query)">a</text>
+                <text id="lb" font-family="var(--font-display)" font-style="italic" font-size="9" fill="var(--key)">b</text>
+              </svg>
+            </div>
+            <div class="vec-readout">
+              <div><span class="lbl">a =</span> <span id="va-val">[60, -30]</span></div>
+              <div><span class="lbl">b =</span> <span id="vb-val">[40, 50]</span></div>
+              <div style="margin-top:14px"><span class="lbl">‖a‖ =</span> <b id="va-len">—</b></div>
+              <div><span class="lbl">‖b‖ =</span> <b id="vb-len">—</b></div>
+              <div style="margin-top:14px"><span class="lbl">a · b =</span> <b id="ab-dot" style="font-size:18px">—</b></div>
+              <div><span class="lbl">cos θ =</span> <b id="ab-cos">—</b></div>
+              <div><span class="lbl">θ =</span> <b id="ab-ang">—</b>°</div>
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--paper-3)">
+                <span class="lbl">verdict —</span> <b id="ab-verd" style="color:var(--key)">—</b>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 1</b> — same number, two faces. The algebraic sum and the geometric product agree because of the law of cosines.</div>
       </div>
-      <div class="fig__cap"><b>Fig 2</b> — the dot product is <em class="math">q · k = |q||k|cos θ</em>. When you drag the key to angle 0°, cos θ = 1 and the score is maximal.</div>
     </div>
 
-    <h2>Why this matters</h2>
-    <p>Attention scores six tokens against six tokens by taking <em>thirty-six</em> of these dot products. That is the entire first half of the attention equation. Everything that comes later — scaling, softmax, the weighted sum — exists to turn this raw similarity into a usable answer.</p>
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 2 — Random pairs in $\mathbb{R}^d$</div>
+      <h3>In high dimensions, random vectors are nearly orthogonal.</h3>
+      <p>This is the fact that makes attention possible. Sample pairs $a, b$ with $\mathcal{N}(0,1)$ entries; compute $\cos\theta = (a \cdot b) / (\|a\| \|b\|)$. As $d$ grows, the distribution of $\cos\theta$ concentrates around $0$ — meaning <em>random vectors carry almost no signal about each other</em>. Learned vectors don't have to compete with random noise.</p>
 
-    <div class="callout"><strong>One sentence to remember —</strong> the dot product measures alignment. Attention is built on nothing else.</div>
+      <div class="fig">
+        <div class="fig__title">Figure 2 · cosine similarity of 5000 random pairs</div>
+        <div class="fig__body">
+          <div class="controls">
+            <div class="ctrl"><span>$d$</span>
+              <input id="ex2-d" type="range" min="2" max="512" step="1" value="64">
+              <span class="val" id="ex2-dval">64</span>
+            </div>
+            <div class="ctrl"><button id="ex2-resample" class="btn-mono">resample</button></div>
+          </div>
+          <div id="ex2-hist" class="hist" style="margin-top:14px"></div>
+          <div class="stat-row" style="margin-top:24px">
+            <div class="stat-tile"><span class="l">empirical std</span><span class="v" id="ex2-std">—</span></div>
+            <div class="stat-tile"><span class="l">theory: 1/√d</span><span class="v" id="ex2-theory">—</span></div>
+            <div class="stat-tile"><span class="l">|cos θ| > 0.1 fraction</span><span class="v" id="ex2-far">—</span></div>
+          </div>
+        </div>
+        <div class="fig__cap"><b>Fig 2</b> — at $d=2$ random pairs are often quite aligned; at $d=512$ they are essentially orthogonal. The std of $\cos\theta$ shrinks as $1/\sqrt{d}$.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <div class="exp">
+      <div class="exp-sub">Experiment 3 — Why this is computationally beautiful</div>
+      <h3>One operation, every framework, every chip.</h3>
+      <p>An $n$-token sequence with $d$-dim embeddings produces an $n \times n$ score matrix from a single matrix multiply: $S = QK^\top$. That's $n^2 d$ multiply-adds — a workload modern hardware was literally designed for.</p>
+      <div class="stat-row">
+        <div class="stat-tile"><span class="l">n = 512, d = 64</span><span class="v">≈ 17M</span></div>
+        <div class="stat-tile"><span class="l">n = 2048, d = 64</span><span class="v">≈ 268M</span></div>
+        <div class="stat-tile"><span class="l">n = 8192, d = 64</span><span class="v">≈ 4.3B</span></div>
+      </div>
+      <p>The $n^2$ scaling — quadratic in sequence length — is exactly what people mean by "the attention bottleneck." Whole research subfields exist to dodge it (FlashAttention, linear attention, sparse attention). For now, accept it: attention is fast enough that we can afford the cost in exchange for the modeling power.</p>
+    </div>
+
+    <div class="callout"><strong>To remember —</strong> The dot product is similarity. In high dimensions it's almost always small for random pairs, so any large value is meaningful signal.</div>
+
+    <h2>References</h2>
+    <p class="refs">
+    [1] Vaswani et al. (2017). <em>Attention Is All You Need.</em> NeurIPS 30. §3.2.<br>
+    [2] Vershynin (2018). <em>High-Dimensional Probability.</em> §3.4 — concentration on the sphere.<br>
+    [3] Goodfellow, Bengio, Courville (2016). <em>Deep Learning.</em> §2.5 — basic linear algebra.
+    </p>
 
     <nav class="fn-nav" id="footer-nav"></nav>
   </main>
 </div>
 
+<style>.btn-mono{padding:6px 14px;background:var(--paper-3);border:0;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer;color:var(--ink)}.btn-mono:hover{background:var(--paper-edge)}</style>
+
 <script>
 AttendShell.mount({ chapter: "Chapter 1", section: "§1 A vector, a dot product", progress: 14, activeId: "§1" });
+const v = JSON.parse(localStorage.getItem('attend-progress') || '[]');
+if (!v.includes('§1')) { v.push('§1'); localStorage.setItem('attend-progress', JSON.stringify(v)); }
 
-// Fig 1 — cat vector
-const cat = [0.9, 0.1, 0.2, -0.1];
-document.getElementById('fig-vector-cat').innerHTML =
-  '<span class="tok-q" style="font-size:24px;margin-right:16px">cat =</span>' +
-  '<div style="display:flex;gap:3px">' + cat.map(v => {
-    const w = (v + 1) / 2;
-    return `<div class="cell" style="width:54px;height:54px;font-size:13px;background:${AttendShell.heatVar(w)}">${AttendShell.fmt(v)}</div>`;
-  }).join('') + '</div>';
-
-// Fig 2 — interactive dot product
+// ── Experiment 1 — Interactive dot product ────────────────────────────────
 (() => {
-  const svg = document.getElementById('dp-svg');
-  const readout = document.getElementById('dp-readout');
-  const CX = 200, CY = 150, SCALE = 90;
-  const q = { x: 1.0, y: 0.2 };  // query (fixed)
-  let k = { x: 0.7, y: -0.5 };    // draggable key
+  const svg = document.getElementById('vec-svg');
+  let a = { x: 60, y: -30 }, b = { x: 40, y: 50 };  // SVG coords (y flipped from math)
 
-  const render = () => {
-    const qx = CX + q.x * SCALE, qy = CY - q.y * SCALE;
-    const kx = CX + k.x * SCALE, ky = CY - k.y * SCALE;
-    const dp = q.x * k.x + q.y * k.y;
-    const qn = Math.hypot(q.x, q.y), kn = Math.hypot(k.x, k.y);
-    const cos = dp / (qn * kn);
-    const theta = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+  const update = () => {
+    const ax = a.x, ay = -a.y, bx = b.x, by = -b.y;  // math y
+    document.getElementById('va').setAttribute('x2', a.x);
+    document.getElementById('va').setAttribute('y2', a.y);
+    document.getElementById('vb').setAttribute('x2', b.x);
+    document.getElementById('vb').setAttribute('y2', b.y);
+    document.getElementById('ha').setAttribute('cx', a.x); document.getElementById('ha').setAttribute('cy', a.y);
+    document.getElementById('hb').setAttribute('cx', b.x); document.getElementById('hb').setAttribute('cy', b.y);
+    document.getElementById('la').setAttribute('x', a.x + 4); document.getElementById('la').setAttribute('y', a.y - 4);
+    document.getElementById('lb').setAttribute('x', b.x + 4); document.getElementById('lb').setAttribute('y', b.y - 4);
 
-    svg.innerHTML = `
-      <defs>
-        <marker id="ahq" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" fill="var(--query)"/>
-        </marker>
-        <marker id="ahk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" fill="var(--key)"/>
-        </marker>
-      </defs>
-      <line x1="20" y1="${CY}" x2="380" y2="${CY}" stroke="var(--paper-3)" stroke-width="1"/>
-      <line x1="${CX}" y1="20" x2="${CX}" y2="280" stroke="var(--paper-3)" stroke-width="1"/>
-      <g opacity="0.4">
-        ${[-1, 1].map(v => `<circle cx="${CX + v*SCALE}" cy="${CY}" r="2" fill="var(--ink-4)"/>`).join('')}
-        ${[-1, 1].map(v => `<circle cx="${CX}" cy="${CY - v*SCALE}" r="2" fill="var(--ink-4)"/>`).join('')}
-      </g>
-      <line x1="${CX}" y1="${CY}" x2="${qx}" y2="${qy}" stroke="var(--query)" stroke-width="3" marker-end="url(#ahq)"/>
-      <text x="${qx + 10}" y="${qy - 6}" fill="var(--query)" font-family="var(--font-display)" font-style="italic" font-weight="600" font-size="16">q</text>
-      <line x1="${CX}" y1="${CY}" x2="${kx}" y2="${ky}" stroke="var(--key)" stroke-width="3" marker-end="url(#ahk)"/>
-      <text x="${kx + 10}" y="${ky - 6}" fill="var(--key)" font-family="var(--font-display)" font-style="italic" font-weight="600" font-size="16">k</text>
-      <circle cx="${kx}" cy="${ky}" r="10" fill="var(--key)" fill-opacity="0.2" stroke="var(--key)" stroke-width="1.5" style="cursor:grab" id="k-handle"/>
-    `;
+    // Perpendicular to a (passing through origin)
+    const aLen = Math.hypot(a.x, a.y) || 1;
+    const px = -a.y / aLen * 110, py = a.x / aLen * 110;
+    document.getElementById('perp').setAttribute('x1', -px);
+    document.getElementById('perp').setAttribute('y1', -py);
+    document.getElementById('perp').setAttribute('x2', px);
+    document.getElementById('perp').setAttribute('y2', py);
 
-    readout.innerHTML = `
-      <div style="color:var(--ink-3);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">dot product</div>
-      <div style="font-size:28px;color:${dp > 0 ? 'var(--ok)' : dp < -0.05 ? 'var(--err)' : 'var(--ink-3)'};font-weight:600">${AttendShell.fmt(dp, 2)}</div>
-      <div style="border-top:1px solid var(--paper-3);margin:14px 0;padding-top:10px">
-        <div>|q| = <b>${AttendShell.fmt(qn)}</b></div>
-        <div>|k| = <b>${AttendShell.fmt(kn)}</b></div>
-        <div>cos θ = <b>${AttendShell.fmt(cos)}</b></div>
-        <div>θ = <b>${theta.toFixed(0)}°</b></div>
-      </div>
-    `;
+    // Math
+    const dot = ax*bx + ay*by;
+    const aL = Math.hypot(ax, ay), bL = Math.hypot(bx, by);
+    const cos = dot / (aL * bL || 1);
+    const ang = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+
+    document.getElementById('va-val').textContent = `[${ax.toFixed(0)}, ${ay.toFixed(0)}]`;
+    document.getElementById('vb-val').textContent = `[${bx.toFixed(0)}, ${by.toFixed(0)}]`;
+    document.getElementById('va-len').textContent = aL.toFixed(1);
+    document.getElementById('vb-len').textContent = bL.toFixed(1);
+    document.getElementById('ab-dot').textContent = dot.toFixed(0);
+    document.getElementById('ab-cos').textContent = cos.toFixed(3);
+    document.getElementById('ab-ang').textContent = ang.toFixed(0);
+
+    const v = document.getElementById('ab-verd');
+    if (Math.abs(dot) < aL*bL*0.05) { v.textContent = 'orthogonal'; v.style.color = 'var(--ink-3)'; }
+    else if (dot > 0) { v.textContent = 'same direction'; v.style.color = 'var(--key)'; }
+    else { v.textContent = 'opposite direction'; v.style.color = 'var(--query)'; }
+
+    // Arc between vectors
+    const aAng = Math.atan2(a.y, a.x), bAng = Math.atan2(b.y, b.x);
+    const r = 18;
+    const x1 = r*Math.cos(aAng), y1 = r*Math.sin(aAng);
+    const x2 = r*Math.cos(bAng), y2 = r*Math.sin(bAng);
+    let dAng = bAng - aAng;
+    if (dAng > Math.PI) dAng -= 2*Math.PI; if (dAng < -Math.PI) dAng += 2*Math.PI;
+    const sweep = dAng > 0 ? 1 : 0;
+    document.getElementById('arc').setAttribute('d', `M ${x1} ${y1} A ${r} ${r} 0 0 ${sweep} ${x2} ${y2} L 0 0 Z`);
   };
 
-  render();
-
-  let dragging = false;
-  svg.addEventListener('mousedown', (e) => {
-    if (e.target.id === 'k-handle') { dragging = true; e.preventDefault(); }
-  });
+  let dragging = null;
+  const ptToSvg = (e) => {
+    const rect = svg.getBoundingClientRect();
+    const cx = (e.clientX ?? e.touches[0].clientX) - rect.left;
+    const cy = (e.clientY ?? e.touches[0].clientY) - rect.top;
+    return { x: (cx / rect.width) * 200 - 100, y: (cy / rect.height) * 200 - 100 };
+  };
+  const onDown = (which) => (e) => { dragging = which; e.preventDefault(); };
+  document.getElementById('ha').addEventListener('mousedown', onDown('a'));
+  document.getElementById('hb').addEventListener('mousedown', onDown('b'));
+  document.getElementById('ha').addEventListener('touchstart', onDown('a'), {passive:false});
+  document.getElementById('hb').addEventListener('touchstart', onDown('b'), {passive:false});
   window.addEventListener('mousemove', (e) => {
     if (!dragging) return;
-    const r = svg.getBoundingClientRect();
-    const px = (e.clientX - r.left) * (400 / r.width);
-    const py = (e.clientY - r.top)  * (300 / r.height);
-    k.x = (px - CX) / SCALE;
-    k.y = -(py - CY) / SCALE;
-    // clamp
-    const len = Math.hypot(k.x, k.y);
-    if (len > 1.3) { k.x *= 1.3 / len; k.y *= 1.3 / len; }
-    render();
+    const p = ptToSvg(e);
+    if (dragging === 'a') a = p; else b = p;
+    update();
   });
-  window.addEventListener('mouseup', () => dragging = false);
+  window.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const p = ptToSvg(e); if (dragging === 'a') a = p; else b = p; update();
+    e.preventDefault();
+  }, {passive:false});
+  window.addEventListener('mouseup', () => dragging = null);
+  window.addEventListener('touchend', () => dragging = null);
+  update();
+})();
+
+// ── Experiment 2 — High-dim cosine concentration ──────────────────────────
+(() => {
+  const randn = AttendShell.randn;
+  const histogram = (vals, bins, range) => {
+    const [mn, mx] = range, w = (mx-mn)/bins, c = Array(bins).fill(0);
+    vals.forEach(v => c[Math.max(0, Math.min(bins-1, Math.floor((v-mn)/w)))]++);
+    return c;
+  };
+
+  const render = () => {
+    const d = +document.getElementById('ex2-d').value;
+    document.getElementById('ex2-dval').textContent = d;
+
+    const N = 5000;
+    const cos = [];
+    for (let i = 0; i < N; i++) {
+      const a = Array.from({length: d}, randn), b = Array.from({length: d}, randn);
+      const dot = a.reduce((s,x,i)=>s+x*b[i],0);
+      const aL = Math.sqrt(a.reduce((s,x)=>s+x*x,0)), bL = Math.sqrt(b.reduce((s,x)=>s+x*x,0));
+      cos.push(dot/(aL*bL));
+    }
+
+    const bins = 40;
+    const counts = histogram(cos, bins, [-1, 1]);
+    const max = Math.max(...counts, 1);
+    const el = document.getElementById('ex2-hist');
+    el.innerHTML = counts.map(c => `<div class="hist-bar" style="height:${(c/max)*100}%"></div>`).join('') +
+      `<div class="hist-zero" style="left:50%"></div>` +
+      `<div class="hist-tick" style="left:0%">−1</div>` +
+      `<div class="hist-tick" style="left:50%">0</div>` +
+      `<div class="hist-tick" style="left:100%">+1</div>`;
+
+    const m = cos.reduce((a,b)=>a+b,0)/cos.length;
+    const std = Math.sqrt(cos.reduce((a,x)=>a+(x-m)**2,0)/cos.length);
+    const far = cos.filter(x => Math.abs(x) > 0.1).length / N;
+    document.getElementById('ex2-std').textContent = std.toFixed(3);
+    document.getElementById('ex2-theory').textContent = (1/Math.sqrt(d)).toFixed(3);
+    document.getElementById('ex2-far').textContent = (far*100).toFixed(1) + '%';
+  };
+  document.getElementById('ex2-d').addEventListener('input', render);
+  document.getElementById('ex2-resample').addEventListener('click', render);
+  render();
 })();
 </script>
 </body></html>
