@@ -1,0 +1,33 @@
+/* Shared experiment styles for deep-dive chapters */
+
+.exp { margin: 36px 0; }
+.exp h3 { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 22px; color: var(--ink); margin: 0 0 6px; }
+.exp .exp-sub { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--query); margin-bottom: 14px; }
+
+.equation-block { background: var(--paper); border: 1px solid var(--paper-3); border-left: 3px solid var(--query); border-radius: 0 6px 6px 0; padding: 18px 22px; margin: 18px 0; }
+.equation-block .lbl { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--query); margin-bottom: 10px; }
+
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+.compare-col { background: var(--paper); border: 1px solid var(--paper-3); border-radius: 8px; padding: 14px; }
+.compare-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-4); margin-bottom: 8px; }
+.compare-stat { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+.hist { display: flex; align-items: flex-end; gap: 1px; height: 140px; padding: 8px 12px; background: var(--paper); border: 1px solid var(--paper-3); border-radius: 6px; position: relative; }
+.hist-bar { flex: 1; min-width: 1px; background: var(--query); transition: height 200ms; border-radius: 1px 1px 0 0; }
+.hist-zero { position: absolute; bottom: 0; width: 1px; background: var(--ink-3); height: 100%; opacity: 0.5; }
+.hist-tick { position: absolute; bottom: -18px; font-family: var(--font-mono); font-size: 9px; color: var(--ink-4); transform: translateX(-50%); }
+
+.stat-tile { display: inline-flex; flex-direction: column; gap: 2px; padding: 10px 14px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 6px; min-width: 90px; }
+.stat-tile .l { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-4); }
+.stat-tile .v { font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+
+.bar-row { display: grid; grid-template-columns: 30px 1fr 50px; gap: 8px; align-items: center; }
+.bar-row + .bar-row { margin-top: 4px; }
+.bar-row .lbl { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
+.bar-row .track { height: 14px; background: var(--paper-2); border-radius: 7px; overflow: hidden; }
+.bar-row .fill { height: 100%; background: var(--query); transition: width 200ms; }
+.bar-row .v { font-family: var(--font-mono); font-size: 10px; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+
+.refs { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); line-height: 1.7; }
+.refs em { color: var(--ink-2); font-style: italic; }

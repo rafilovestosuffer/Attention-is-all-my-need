@@ -74,6 +74,29 @@ body[data-scheme="dark"] {
   color: var(--ink);
 }
 
+/* ---- Override hardcoded whites in chapter.css ------------------------- */
+[data-scheme="dark"] .fn:hover {
+  background: var(--paper-2) !important;
+  border-color: var(--ink-3);
+}
+[data-scheme="dark"] .cell {
+  background: var(--paper-2) !important;
+  border-color: var(--paper-3) !important;
+}
+[data-scheme="dark"] .token-chip:hover {
+  background: var(--paper-2) !important;
+}
+[data-scheme="dark"] .checklist li:hover {
+  background: var(--paper-2) !important;
+}
+[data-scheme="dark"] .quiz-opt {
+  background: var(--paper) !important;
+  color: var(--ink-2);
+}
+[data-scheme="dark"] .quiz-opt:hover {
+  border-color: var(--ink-3) !important;
+}
+
 /* ---- Dark mode toggle button ------------------------------------------ */
 .dark-toggle {
   appearance: none;
