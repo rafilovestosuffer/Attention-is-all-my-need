@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attend · §0 Prerequisites</title>
+<link rel="icon" href="../../assets/brand/logomark.svg">
+<link rel="stylesheet" href="chapter.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<script src="shell.js"></script>
+<style>
+  .checklist { list-style: none; padding: 0; margin: 20px 0; display: flex; flex-direction: column; gap: 10px; }
+  .checklist li { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 8px; font-size: 14px; line-height: 1.55; cursor: pointer; transition: all 180ms; user-select: none; }
+  .checklist li:hover { background: #fff; box-shadow: var(--shadow-1); }
+  .checklist li.done { opacity: 0.55; }
+  .checklist li.done .chk { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .chk { width: 22px; height: 22px; min-width: 22px; border-radius: 50%; border: 2px solid var(--paper-edge); display: flex; align-items: center; justify-content: center; font-size: 12px; font-family: var(--font-mono); transition: all 180ms; margin-top: 1px; }
+  .prereq-body { flex: 1; }
+  .prereq-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--ink); margin-bottom: 3px; }
+  .prereq-desc { color: var(--ink-3); font-size: 13px; line-height: 1.5; }
+  .quiz { margin: 32px 0; padding: 24px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 10px; }
+  .quiz h3 { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--ink); margin: 0 0 12px; }
+  .quiz-q { font-size: 15px; color: var(--ink-2); margin-bottom: 14px; }
+  .quiz-opts { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-opt { padding: 10px 14px; background: #fff; border: 1px solid var(--paper-3); border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 160ms; }
+  .quiz-opt:hover { border-color: var(--ink-3); }
+  .quiz-opt.correct { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+  .quiz-opt.wrong   { background: var(--err-soft); border-color: var(--err); color: var(--err); }
+  .quiz-feedback { margin-top: 12px; font-size: 13px; line-height: 1.5; min-height: 20px; }
+</style>
+</head><body>
+<div class="app" data-screen-label="Reader · §0">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader">
+    <div class="topbar" id="topbar"></div>
+
+    <div class="eyebrow">Prerequisites · self-assessment</div>
+    <h1 class="hero">What you need <em>to start.</em></h1>
+    <p class="lede">You do not need a PhD. You need three things: vectors, dot products, and the idea that a function can produce a probability distribution. Check them off below — there's a quick quiz for each.</p>
+
+    <h2>The checklist</h2>
+    <ul class="checklist" id="checklist">
+      <li data-id="vectors">
+        <div class="chk" id="chk-vectors"></div>
+        <div class="prereq-body">
+          <div class="prereq-title">Vectors as lists of numbers</div>
+          <div class="prereq-desc">A vector is an ordered list. <code>[0.9, 0.1, 0.2, -0.1]</code> is a 4-vector. No geometry required.</div>
+        </div>
+      </li>
+      <li data-id="dot">
+        <div class="chk" id="chk-dot"></div>
+        <div class="prereq-body">
+          <div class="prereq-title">The dot product</div>
+          <div class="prereq-desc">Multiply element-wise and sum: $\mathbf{a} \cdot \mathbf{b} = \sum_i a_i b_i$. Result is one number.</div>
+        </div>
+      </li>
+      <li data-id="matrix">
+        <div class="chk" id="chk-matrix"></div>
+        <div class="prereq-body">
+          <div class="prereq-title">Matrix multiplication</div>
+          <div class="prereq-desc">$AB_{ij} = \sum_k A_{ik} B_{kj}$. Each output cell is a dot product of one row of $A$ with one column of $B$.</div>
+        </div>
+      </li>
+      <li data-id="softmax">
+        <div class="chk" id="chk-softmax"></div>
+        <div class="prereq-body">
+          <div class="prereq-title">Softmax turns scores into probabilities</div>
+          <div class="prereq-desc">$\text{softmax}(x_i) = e^{x_i} / \sum_j e^{x_j}$. All outputs are positive and sum to 1.</div>
+        </div>
+      </li>
+    </ul>
+
+    <h2>Quick quizzes</h2>
+
+    <div class="quiz" id="q1">
+      <h3>Quiz 1 · dot product</h3>
+      <div class="quiz-q">What is $[1, 2, 3] \cdot [4, 5, 6]$?</div>
+      <div class="quiz-opts">
+        <div class="quiz-opt" data-correct="false">15</div>
+        <div class="quiz-opt" data-correct="true">32</div>
+        <div class="quiz-opt" data-correct="false">21</div>
+        <div class="quiz-opt" data-correct="false">6</div>
+      </div>
+      <div class="quiz-feedback" id="fb1"></div>
+    </div>
+
+    <div class="quiz" id="q2">
+      <h3>Quiz 2 · softmax</h3>
+      <div class="quiz-q">Which of the following is <em>always true</em> of softmax output?</div>
+      <div class="quiz-opts">
+        <div class="quiz-opt" data-correct="false">All values are greater than 0.5</div>
+        <div class="quiz-opt" data-correct="true">All values are positive and sum to 1</div>
+        <div class="quiz-opt" data-correct="false">The largest input always maps to exactly 1</div>
+        <div class="quiz-opt" data-correct="false">Values can be negative</div>
+      </div>
+      <div class="quiz-feedback" id="fb2"></div>
+    </div>
+
+    <div class="quiz" id="q3">
+      <h3>Quiz 3 · matrix shapes</h3>
+      <div class="quiz-q">If $Q$ has shape $[6, 4]$ and $K$ has shape $[6, 4]$, what is the shape of $QK^\top$?</div>
+      <div class="quiz-opts">
+        <div class="quiz-opt" data-correct="false">[4, 4]</div>
+        <div class="quiz-opt" data-correct="false">[6, 4]</div>
+        <div class="quiz-opt" data-correct="true">[6, 6]</div>
+        <div class="quiz-opt" data-correct="false">[4, 6]</div>
+      </div>
+      <div class="quiz-feedback" id="fb3"></div>
+    </div>
+
+    <div class="callout" style="background:var(--ok-soft);border-color:var(--ok);color:var(--ok)">
+      <strong>All three correct?</strong> You're ready. Head to §1 and start building intuition from scratch.
+    </div>
+
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
+
+<script>
+// Add §0 to shell chapters list at front
+window._ch0 = true;
+AttendShell.mount({ chapter: "Prerequisites", section: "§0 What you need to start", progress: 0, activeId: "§0" });
+
+// Checklist toggle
+const checks = {};
+document.querySelectorAll('#checklist li').forEach(li => {
+  li.addEventListener('click', () => {
+    const id = li.dataset.id;
+    checks[id] = !checks[id];
+    li.classList.toggle('done', checks[id]);
+    document.getElementById('chk-' + id).textContent = checks[id] ? '✓' : '';
+  });
+});
+
+// Quizzes
+[1,2,3].forEach(n => {
+  const q = document.getElementById('q' + n);
+  const fb = document.getElementById('fb' + n);
+  let answered = false;
+  q.querySelectorAll('.quiz-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      const correct = opt.dataset.correct === 'true';
+      opt.classList.add(correct ? 'correct' : 'wrong');
+      if (!correct) q.querySelector('[data-correct="true"]').classList.add('correct');
+      fb.innerHTML = correct
+        ? '<span style="color:var(--ok);font-weight:600">✓ Correct.</span>'
+        : '<span style="color:var(--err);font-weight:600">✕ Not quite.</span> See the correct answer highlighted above.';
+    });
+  });
+});
+</script>
+</body></html>
