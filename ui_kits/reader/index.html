@@ -1,255 +1,328 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Attend · §4.3 Splitting Q, K, V — a worked example</title>
-  <link rel="icon" href="../../assets/brand/logomark.svg" />
-  <link rel="stylesheet" href="reader.css" />
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-  <!-- Plain-JS math helpers (no bundler). Exported on window.AttMath. -->
-  <script>
-    // Inline-minified version of attention-math.js to avoid CORS/module load.
-    window.AttMath = (() => {
-      const zeros = (r, c) => Array.from({ length: r }, () => Array(c).fill(0));
-      const matmul = (A, B) => {
-        const r = A.length, n = A[0].length, c = B[0].length;
-        const out = zeros(r, c);
-        for (let i = 0; i < r; i++) for (let k = 0; k < n; k++) for (let j = 0; j < c; j++) out[i][j] += A[i][k] * B[k][j];
-        return out;
-      };
-      const T = A => { const r = A.length, c = A[0].length; const o = zeros(c, r); for (let i=0;i<r;i++) for (let j=0;j<c;j++) o[j][i] = A[i][j]; return o; };
-      const scale = (A, s) => A.map(r => r.map(x => x * s));
-      const softmaxRows = (A, T = 1) => A.map(row => {
-        const sc = row.map(x => x / T);
-        const m = Math.max(...sc);
-        const ex = sc.map(x => Math.exp(x - m));
-        const sum = ex.reduce((a,b)=>a+b,0);
-        return ex.map(x => x / sum);
-      });
-      const fmt = (n, d = 2) => { const s = n.toFixed(d); return s === "-0.00" ? "0.00" : s; };
-      const heatVar = w => `var(--heat-${Math.max(0, Math.min(5, Math.floor(w * 6)))})`;
-      const TOKENS = ["the", "cat", "sat", "on", "the", "mat"];
-      const Q0 = [[0.9,0.1,0.2,-0.1],[0.2,1.0,0.3,0.1],[0.1,0.4,0.8,0.2],[0.3,0.0,0.2,0.7],[0.9,0.1,0.2,-0.1],[0.2,0.9,0.1,0.4]];
-      const K0 = [[0.8,0.2,0.1,0.0],[0.1,0.9,0.2,0.2],[0.2,0.3,0.9,0.1],[0.2,0.1,0.1,0.8],[0.8,0.2,0.1,0.0],[0.1,0.8,0.2,0.3]];
-      const V0 = [[0.3,-0.1,0.2,0.1],[0.1,0.8,-0.1,0.3],[0.5,0.2,0.4,-0.1],[-0.2,0.1,0.3,0.5],[0.3,-0.1,0.2,0.1],[0.2,0.7,-0.2,0.4]];
-      const computeAttention = (Q, K, V, { scaled = true, temperature = 1 } = {}) => {
-        const dk = Q[0].length;
-        const Kt = T(K);
-        const scores = matmul(Q, Kt);
-        const scaledScores = scaled ? scale(scores, 1 / Math.sqrt(dk)) : scores;
-        const weights = softmaxRows(scaledScores, temperature);
-        const output  = matmul(weights, V);
-        return { Kt, scores, scaledScores, weights, output, dk };
-      };
-      return { zeros, matmul, T, scale, softmaxRows, fmt, heatVar, TOKENS, Q0, K0, V0, computeAttention };
-    })();
-  </script>
-</head>
-<body>
-  <div class="app" data-screen-label="Reader · §4.3">
-    <div id="sidebar-root"></div>
-    <main class="reader">
-      <div id="topbar-root"></div>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attend · §4.3 Splitting Q, K, V — live playground</title>
+<link rel="icon" href="../../assets/brand/logomark.svg">
+<link rel="stylesheet" href="chapter.css">
+<link rel="stylesheet" href="../../src/styles/dark.css">
+<link rel="stylesheet" href="../../src/styles/a11y.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+<script src="shell.js"></script>
+<style>
+  /* Token chips */
+  .token-input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .token-chip { padding: 6px 14px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 999px; font-family: var(--font-sans); font-size: 14px; color: var(--ink); cursor: pointer; transition: all 160ms; user-select: none; }
+  .token-chip:hover { background: var(--paper); border-color: var(--ink-3); }
+  .token-chip.active { background: var(--query-soft); border-color: var(--query); color: var(--query-ink); font-weight: 600; }
+  .token-input { border: 1px solid var(--paper-edge); background: var(--paper); border-radius: 8px; padding: 10px 14px; font-family: var(--font-sans); font-size: 15px; width: 100%; box-sizing: border-box; color: var(--ink); outline: none; }
+  .token-input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(26,31,43,.08); }
 
-      <div id="intro-root"></div>
+  /* Heatmap grid */
+  .heatmap-wrap { overflow-x: auto; }
+  .heatmap-grid { display: inline-grid; gap: 2px; }
+  .hm-cell { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; border-radius: 3px; transition: all 120ms; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .hm-cell:hover { transform: scale(1.15); z-index: 2; box-shadow: var(--shadow-2); }
+  .hm-header { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; color: var(--ink-3); }
+  .hm-row-label { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; color: var(--query); }
 
-      <div id="playground-root"></div>
+  /* Step-through */
+  .step-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .step-btn { padding: 6px 14px; border: 1px solid var(--paper-3); background: var(--paper-2); border-radius: 6px; font-family: var(--font-mono); font-size: 11px; cursor: pointer; color: var(--ink-2); transition: all 160ms; }
+  .step-btn:hover, .step-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
-      <h2>What just happened</h2>
+  /* Dark toggle */
+  .dark-btn { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
 
-      <p>
-        Each row of the output is a <strong>convex combination</strong> of
-        the value rows, weighted by how much this query "asked" each key. A
-        row that attends uniformly just averages all values; a row that attends
-        sharply copies a single value. Multi-head attention runs
-        <em class="math">h</em> copies of this in parallel, each with its own
-        learned Q, K, V projections — giving the model <em class="math">h</em>
-        different ways to relate tokens.
-      </p>
+  /* Stats strip */
+  .stats-strip { display: flex; gap: 24px; padding: 12px 16px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-4); }
+  .stat-val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+</style>
+</head><body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div class="app" data-screen-label="Reader · §4.3 Playground">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="reader" id="main-content">
+    <div class="topbar" id="topbar" style="display:flex;justify-content:space-between;align-items:center">
+      <span id="topbar-inner">
+        <span class="chap">Chapter 4<span class="sep">·</span><span class="section">§4.3 Splitting Q, K, V</span></span>
+        <span class="right" style="margin-left:16px">62% through the book</span>
+      </span>
+      <label class="dark-btn" aria-label="Toggle dark mode">
+        <span>dark</span>
+        <button class="dark-toggle" id="dark-toggle" aria-pressed="false"></button>
+      </label>
+    </div>
 
-      <div id="callout-1"></div>
+    <div class="eyebrow">A worked example · §4.3</div>
+    <h1 class="hero">The sentence <em>that attends to itself.</em></h1>
+    <p class="lede">Type any sentence below. We'll tokenise it word-by-word, project each token into $Q$, $K$, $V$ space, and compute scaled dot-product attention in front of you — every number live.</p>
 
-      <h3>Try it yourself</h3>
+    <h2>Your sentence</h2>
+    <p>Type a sentence (2–8 words). Each word becomes one token.</p>
 
-      <p>
-        Reproduce the numbers above with NumPy. The shapes are small enough
-        that you can print every intermediate.
-      </p>
-
-      <div id="scratch-1"></div>
-
-      <p>
-        Next up: we'll stack <em class="math">h = 8</em> heads, each with
-        <em class="math">d<sub>k</sub> = 64</em>, and see how concatenation
-        followed by the output projection <em class="math">W<sup>O</sup></em>
-        gives us back a <code>[n, d_model]</code> tensor — the same shape we
-        started with, now enriched by eight distinct attention views.
-      </p>
-
-      <div class="footer-nav">
-        <a href="#" class="fn fn--prev">
-          <span class="fn__eyebrow">§4.2</span>
-          <span class="fn__title">← Shapes and splits</span>
-        </a>
-        <a href="#" class="fn fn--next">
-          <span class="fn__eyebrow">§4.4</span>
-          <span class="fn__title">Per-head attention →</span>
-        </a>
+    <div>
+      <input class="token-input" id="sentence-input" type="text" value="the cat sat on the mat" maxlength="80" aria-label="Enter sentence to attend over">
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);padding-top:4px">Try:</span>
+        <button class="token-chip" data-s="the cat sat on the mat">the cat sat on the mat</button>
+        <button class="token-chip" data-s="attention is all you need">attention is all you need</button>
+        <button class="token-chip" data-s="a rose is a rose">a rose is a rose</button>
+        <button class="token-chip" data-s="she sells sea shells">she sells sea shells</button>
       </div>
-    </main>
-  </div>
+    </div>
 
-  <style>
-    .footer-nav { display: flex; justify-content: space-between; gap: 14px; margin-top: 72px; border-top: 1px solid var(--paper-3); padding-top: 20px; }
-    .fn { flex: 1; padding: 14px 18px; background: var(--paper-2); border: 1px solid var(--paper-3); border-radius: 8px; text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 4px; transition: all 220ms; }
-    .fn:hover { background: #fff; box-shadow: var(--shadow-1); }
-    .fn--next { text-align: right; }
-    .fn__eyebrow { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; }
-    .fn__title { font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: 18px; }
-  </style>
+    <h2>Step through the math</h2>
+    <div class="step-bar" id="step-bar">
+      <button class="step-btn active" data-step="scores">1 · Raw scores $QK^\top$</button>
+      <button class="step-btn" data-step="scaled">2 · Scaled ÷ $\sqrt{d_k}$</button>
+      <button class="step-btn" data-step="weights">3 · Softmax weights</button>
+      <button class="step-btn" data-step="output">4 · Output $= W \cdot V$</button>
+    </div>
 
-  <script type="text/babel" src="components.jsx"></script>
-  <script type="text/babel" src="AttentionPlayground.jsx"></script>
-  <script type="text/babel" src="tweaks-panel.jsx"></script>
-  <script type="text/babel">
-    const { createRoot } = ReactDOM;
-    const { useState } = React;
+    <div class="controls" style="margin-bottom:14px">
+      <div class="ctrl"><span>temperature $T$</span>
+        <input type="range" id="temp" min="0.1" max="4" step="0.05" value="1" aria-label="Softmax temperature">
+        <span class="val" id="temp-val">1.00</span>
+      </div>
+      <div class="ctrl"><input type="checkbox" id="scaled-chk" checked aria-label="Toggle sqrt dk scaling"> <label for="scaled-chk">÷ $\sqrt{d_k}$</label></div>
+    </div>
 
-    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-      "introVariant": "storytelling",
-      "showEyebrow": true,
-      "showLede": true,
-      "dropcap": false,
-      "heroSize": 48,
-      "ledeItalic": true,
-      "accent": "query"
-    }/*EDITMODE-END*/;
+    <div id="stats-strip" class="stats-strip"></div>
 
-    const INTROS = {
-      scholarly: {
-        eyebrow: "Chapter 4 · §4.3",
-        title: ["Splitting ", "Q", ", ", "K", ", ", "V"],
-        lede: "Before we can give each head its own view, we slice the shared Q, K, V tensors along their feature dimension. The math is almost embarrassingly simple — but the shapes are where everyone gets lost.",
-        body: "We start from the d-model-dimensional projections built in §4.2. For a sequence of length n we have three matrices of shape [n, d_model]. Multi-head attention says: split each one into h independent chunks of size dₖ = d_model / h, and run attention on each chunk in parallel."
-      },
-      inviting: {
-        eyebrow: "Chapter 4 · one head at a time",
-        title: ["Three matrices, ", "one ", "question"],
-        lede: "You already know how to multiply matrices. That is the whole secret — attention is three multiplications and a softmax, arranged so the model can ask, look, and borrow.",
-        body: "In this section we will walk through a single attention head on six toy tokens, computing every number by hand. Then we will hand the same work to a live playground so you can poke at it until the intuition clicks."
-      },
-      terse: {
-        eyebrow: "§4.3",
-        title: ["Q, K, V — split and conquer"],
-        lede: "Split d-model into h heads of dₖ. Attend. Concatenate. Project.",
-        body: "That is the whole algorithm. The rest of this section exists to convince you that each of those four words is necessary, and that none of them hide magic."
-      },
-      storytelling: {
-        eyebrow: "A worked example · cat, mat, and six tokens",
-        title: ["The sentence ", "that ", "attends to itself"],
-        lede: "Give the model the sentence \"the cat sat on the mat\" and a single attention head. Watch what \"cat\" looks at. Watch what changes when we turn the softmax temperature down.",
-        body: "We'll keep d_model tiny — just four — so every tensor fits on screen. Every number below is computed live: move a slider and the matrices recompute instantly."
-      }
-    };
+    <div class="fig">
+      <div class="fig__title" id="fig-title">Attention scores — hover a cell to inspect</div>
+      <div class="fig__body">
+        <div class="heatmap-wrap">
+          <div id="heatmap" class="heatmap-grid"></div>
+        </div>
+        <div id="cell-info" style="margin-top:14px;padding:12px 14px;background:var(--paper);border:1px solid var(--paper-3);border-radius:6px;font-family:var(--font-mono);font-size:12px;min-height:36px;color:var(--ink-2)">
+          Hover any cell to inspect it.
+        </div>
+      </div>
+    </div>
 
-    function Intro() {
-      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-      const intro = INTROS[t.introVariant] || INTROS.scholarly;
-      const accentColor =
-        t.accent === "query" ? "var(--query)" :
-        t.accent === "key"   ? "var(--key)"   :
-        t.accent === "value" ? "var(--value)" : "var(--ink)";
+    <div class="callout" id="step-explainer"></div>
 
-      const renderTitle = () => intro.title.map((chunk, i) => {
-        if (chunk === "Q") return <em key={i} className="tok-q">Q</em>;
-        if (chunk === "K") return <em key={i} className="tok-k">K</em>;
-        if (chunk === "V") return <em key={i} className="tok-v">V</em>;
-        return <span key={i}>{chunk}</span>;
-      });
+    <nav class="fn-nav" id="footer-nav"></nav>
+  </main>
+</div>
 
-      return (
-        <>
-          {t.showEyebrow && (
-            <div className="label" style={{ color: accentColor, marginBottom: 8 }}>{intro.eyebrow}</div>
-          )}
-          <h1 className="hero" style={{ fontSize: `${t.heroSize}px` }}>
-            {renderTitle()}
-          </h1>
-          {t.showLede && (
-            <p className="lede" style={{ fontStyle: t.ledeItalic ? "italic" : "normal" }}>
-              {intro.lede}
-            </p>
-          )}
-          <p className={t.dropcap ? "has-dropcap" : ""}>{intro.body}</p>
+<script>
+// ── Dark mode ──────────────────────────────────────────────────────────────
+const scheme = localStorage.getItem('attend-color-scheme') ||
+  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.documentElement.setAttribute('data-scheme', scheme);
+const toggle = document.getElementById('dark-toggle');
+toggle.setAttribute('aria-pressed', scheme === 'dark');
+toggle.addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-scheme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-scheme', next);
+  localStorage.setItem('attend-color-scheme', next);
+  toggle.setAttribute('aria-pressed', next === 'dark');
+});
 
-          <TweaksPanel title="Intro tweaks">
-            <TweakSection label="Variant" />
-            <TweakRadio
-              label="Intro voice"
-              value={t.introVariant}
-              options={["scholarly", "inviting", "terse", "storytelling"]}
-              onChange={v => setTweak("introVariant", v)}
-            />
-            <TweakSection label="Display" />
-            <TweakToggle label="Show eyebrow" value={t.showEyebrow} onChange={v => setTweak("showEyebrow", v)} />
-            <TweakToggle label="Show lede"    value={t.showLede}    onChange={v => setTweak("showLede", v)} />
-            <TweakToggle label="Italic lede"  value={t.ledeItalic}  onChange={v => setTweak("ledeItalic", v)} />
-            <TweakToggle label="Dropcap"      value={t.dropcap}     onChange={v => setTweak("dropcap", v)} />
-            <TweakSlider label="Hero size" value={t.heroSize} min={32} max={72} unit="px" onChange={v => setTweak("heroSize", v)} />
-            <TweakSection label="Accent" />
-            <TweakRadio
-              label="Eyebrow color"
-              value={t.accent}
-              options={["query", "key", "value", "ink"]}
-              onChange={v => setTweak("accent", v)}
-            />
-          </TweaksPanel>
-        </>
-      );
-    }
+// ── Shell ──────────────────────────────────────────────────────────────────
+// Only mount the sidebar — topbar is already rendered in HTML above
+document.getElementById('sidebar').innerHTML = (() => {
+  const CHAPTERS = [
+    { id: '§0',   href: 'ch0-prerequisites.html',  title: 'Prerequisites' },
+    { id: '§1',   href: 'ch1-dot-product.html',    title: 'A vector, a dot product' },
+    { id: '§2',   href: 'ch2-softmax.html',        title: 'From similarity to attention' },
+    { id: '§3.2', href: 'ch3-scale.html',          title: 'Why we scale by √dₖ' },
+    { id: '§4.3', href: 'index.html',              title: 'Splitting Q, K, V' },
+    { id: '§4.4', href: 'ch4-multihead.html',      title: 'Per-head attention' },
+    { id: '§5',   href: 'ch5-positional.html',     title: 'Positional encodings' },
+    { id: '§6',   href: 'ch6-transformer.html',    title: 'The full Transformer block' },
+  ];
+  const items = CHAPTERS.map(c =>
+    `<a class="${c.id === '§4.3' ? 'active' : ''}" href="${c.href}">
+      <span class="n">${c.id}</span><span>${c.title}</span>
+    </a>`
+  ).join('');
+  return `<a class="brand" href="../../index.html">
+    <img src="../../assets/brand/logomark.svg" alt=""> Attend
+  </a><div class="toc">${items}</div>`;
+})();
 
-    createRoot(document.getElementById('intro-root')).render(<Intro />);
-    createRoot(document.getElementById('sidebar-root')).render(<Sidebar />);
-    createRoot(document.getElementById('topbar-root')).render(
-      <TopBar chapter="Chapter 4" section="§4.3 Splitting Q, K, V" progress={62} />
-    );
-    createRoot(document.getElementById('playground-root')).render(<AttentionPlayground />);
+document.getElementById('footer-nav').innerHTML = `
+  <a class="fn" href="ch3-scale.html"><span class="eb">← §3.2</span><span class="tt">Why we scale by √dₖ</span></a>
+  <a class="fn next" href="ch4-multihead.html"><span class="eb">§4.4 →</span><span class="tt">Per-head attention</span></a>
+`;
 
-    createRoot(document.getElementById('mathblock-1')).render(
-      <MathBlock eqn="4.3">
-        <span>head<sub>i</sub> = Attention(</span>
-        <em className="tok-q">Q</em><em>W</em><sub>i</sub><sup>Q</sup>, {" "}
-        <em className="tok-k">K</em><em>W</em><sub>i</sub><sup>K</sup>, {" "}
-        <em className="tok-v">V</em><em>W</em><sub>i</sub><sup>V</sup>)
-      </MathBlock>
-    );
+// Mark visited
+const v = JSON.parse(localStorage.getItem('attend-progress') || '[]');
+if (!v.includes('§4.3')) { v.push('§4.3'); localStorage.setItem('attend-progress', JSON.stringify(v)); }
 
-    createRoot(document.getElementById('callout-1')).render(
-      <Callout kind="info" title="Why exactly √dₖ?">
-        If Q and K have independent entries with unit variance, the dot product
-        <em> q · k</em> has variance <em>d<sub>k</sub></em>. Dividing by √d<sub>k</sub>
-        rescales the variance back to 1, keeping softmax inputs in a regime
-        where gradients flow.
-      </Callout>
-    );
+// ── Math helpers ───────────────────────────────────────────────────────────
+const zeros  = (r,c) => Array.from({length:r}, () => Array(c).fill(0));
+const T      = A => { const r=A.length,c=A[0].length,o=zeros(c,r); for(let i=0;i<r;i++) for(let j=0;j<c;j++) o[j][i]=A[i][j]; return o; };
+const matmul = (A,B) => { const r=A.length,n=A[0].length,c=B[0].length,o=zeros(r,c); for(let i=0;i<r;i++) for(let k=0;k<n;k++) for(let j=0;j<c;j++) o[i][j]+=A[i][k]*B[k][j]; return o; };
+const scale  = (A,s) => A.map(r=>r.map(x=>x*s));
+const softmaxRow = (row,temp) => { const sc=row.map(x=>x/temp),m=Math.max(...sc),ex=sc.map(x=>Math.exp(x-m)),s=ex.reduce((a,b)=>a+b,0); return ex.map(x=>x/s); };
+const softmaxRows = (A,temp) => A.map(r=>softmaxRow(r,temp));
+const fmt = (n,d=2) => { const s=n.toFixed(d); return s==='-0.00'?'0.00':s; };
+const hv  = w => `var(--heat-${Math.max(0,Math.min(5,Math.floor(w*6)))})`;
+const entropy = p => -p.reduce((s,pi)=>s+(pi>0?pi*Math.log2(pi):0),0);
 
-    createRoot(document.getElementById('scratch-1')).render(
-      <Scratchpad
-        code={`<span class="cm"># scaled dot-product, six tokens, d_k=4</span>
-<span class="kw">import</span> numpy <span class="kw">as</span> np
+// ── Seed Q/K/V from token hash ─────────────────────────────────────────────
+const DK = 4;
+const seedRng = str => { let h=0; for(const c of str) h=Math.imul(31,h)+c.charCodeAt(0)|0; return ()=>{ h^=h<<13;h^=h>>7;h^=h<<17; return (h>>>0)/0xFFFFFFFF; }; };
+const makeVec = rng => Array.from({length:DK},()=>(rng()-0.5)*2);
+const makeMatrices = tokens => ({
+  Q: tokens.map(t => makeVec(seedRng('Q'+t))),
+  K: tokens.map(t => makeVec(seedRng('K'+t))),
+  V: tokens.map(t => makeVec(seedRng('V'+t))),
+});
 
-Q, K, V = load_toy()                           <span class="cm"># (6, 4) each</span>
-scores  = Q @ K.T / np.sqrt(<span class="nm">4</span>)          <span class="cm"># (6, 6)</span>
-weights = softmax(scores, axis=-<span class="nm">1</span>)        <span class="cm"># row-wise</span>
-out     = weights @ V                          <span class="cm"># (6, 4)</span>
+// ── State ──────────────────────────────────────────────────────────────────
+let tokens = ['the','cat','sat','on','the','mat'];
+let step = 'scores';
+const STEPS = {
+  scores:  { title: 'Raw scores — $QK^\\top$', explainer: '<strong>Step 1</strong> — each cell $(i,j)$ is the dot product of query row $i$ with key row $j$. These are raw similarities with no normalisation.' },
+  scaled:  { title: 'Scaled scores — $QK^\\top / \\sqrt{d_k}$', explainer: '<strong>Step 2</strong> — dividing by $\\sqrt{d_k}=' + Math.sqrt(DK).toFixed(2) + '$ keeps variance at 1, preventing softmax collapse (Vaswani et al. §3.2.1).' },
+  weights: { title: 'Softmax weights — $\\mathrm{softmax}(\\cdot / T)$', explainer: '<strong>Step 3</strong> — row-wise softmax. Every row sums to 1. This is the attention pattern: row $i$ tells you how much token $i$ looks at every other token.' },
+  output:  { title: 'Output — $\\mathrm{softmax}(\\cdot) \\cdot V$', explainer: '<strong>Step 4</strong> — each output row is a weighted average of value rows, weights given by row $i$ of the attention matrix. Sharper attention → closer to copying a single value.' },
+};
 
-weights[<span class="nm">1</span>].round(<span class="nm">3</span>)  <span class="cm"># attention pattern for "cat"</span>`}
-        output={`array([<span style="color:var(--query)">0.183</span>, <span style="color:var(--query)">0.221</span>, 0.168, 0.128, 0.183, <span style="color:var(--query)">0.117</span>])`}
-      />
-    );
-  </script>
-</body>
-</html>
+const render = () => {
+  const temp = +document.getElementById('temp').value;
+  const scaled = document.getElementById('scaled-chk').checked;
+  document.getElementById('temp-val').textContent = fmt(temp);
+
+  const n = tokens.length;
+  const { Q, K, V } = makeMatrices(tokens);
+  const scores = matmul(Q, T(K));
+  const scaledScores = scaled ? scale(scores, 1/Math.sqrt(DK)) : scores;
+  const weights = softmaxRows(scaledScores, temp);
+  const output = matmul(weights, V);
+
+  const matrices = { scores, scaled: scaledScores, weights, output };
+  const M = matrices[step];
+
+  // Stats strip
+  const flatW = weights.flat();
+  const maxW = Math.max(...flatW);
+  const avgEnt = weights.reduce((s,r)=>s+entropy(r),0)/n;
+  document.getElementById('stats-strip').innerHTML = [
+    { label: 'tokens', val: n },
+    { label: 'd_k', val: DK },
+    { label: '√d_k', val: fmt(Math.sqrt(DK)) },
+    { label: 'max weight', val: fmt(maxW,3) },
+    { label: 'avg entropy', val: fmt(avgEnt,2) + ' bits' },
+  ].map(({label,val})=>`<div class="stat"><div class="stat-label">${label}</div><div class="stat-val">${val}</div></div>`).join('');
+
+  // Figure title
+  const s = STEPS[step];
+  document.getElementById('fig-title').innerHTML = s.title;
+  document.getElementById('step-explainer').innerHTML = s.explainer;
+
+  // Heatmap
+  const isWeight = step === 'weights';
+  const flat = M.flat();
+  const mn = Math.min(...flat), mx = Math.max(...flat);
+  const norm01 = v => mn === mx ? 0.5 : (v - mn) / (mx - mn);
+
+  const cols = step === 'output' ? DK : n;
+  const hm = document.getElementById('heatmap');
+  hm.style.gridTemplateColumns = `64px repeat(${cols}, 44px)`;
+
+  let html = `<div class="hm-header"></div>`;
+  if (step === 'output') {
+    html += Array.from({length:DK},(_,i)=>`<div class="hm-header" style="font-size:10px;color:var(--ink-4)">d${i}</div>`).join('');
+  } else {
+    html += tokens.map(t=>`<div class="hm-header">${t}</div>`).join('');
+  }
+
+  M.forEach((row, i) => {
+    html += `<div class="hm-row-label">${tokens[i]}</div>`;
+    row.forEach((v, j) => {
+      const w = isWeight ? v : norm01(v);
+      const col = step === 'output' ? `var(--value-soft)` : hv(w);
+      const tcolor = step === 'output' ? 'var(--value-ink)' : (w > 0.55 ? '#fff' : 'var(--ink)');
+      const label = j < tokens.length ? tokens[j] : `d${j}`;
+      html += `<div class="hm-cell"
+        style="background:${col};color:${tcolor}"
+        data-i="${i}" data-j="${j}" data-v="${v}" data-row="${tokens[i]}" data-col="${label}"
+      >${fmt(v)}</div>`;
+    });
+  });
+
+  hm.innerHTML = html;
+
+  // Cell hover
+  hm.querySelectorAll('.hm-cell').forEach(cell => {
+    cell.addEventListener('mouseenter', () => {
+      const {i,j,v,row,col} = cell.dataset;
+      const msgs = {
+        scores:  `"${row}" × "${col}" raw score = <b>${fmt(+v)}</b> — pure dot product, no scaling`,
+        scaled:  `"${row}" × "${col}" scaled = <b>${fmt(+v)}</b> — divided by √${DK} = ${fmt(Math.sqrt(DK))}`,
+        weights: `"${row}" attends to "${col}" with weight <b>${fmt(+v,3)}</b> (${(+v*100).toFixed(1)}% of this row's attention budget)`,
+        output:  `Output token "${row}", feature dim ${j} = <b>${fmt(+v)}</b> — weighted avg of V column ${j}`,
+      };
+      document.getElementById('cell-info').innerHTML = msgs[step];
+    });
+  });
+
+  if (typeof renderMathInElement !== 'undefined') {
+    setTimeout(() => renderMathInElement(document.getElementById('step-explainer'), {delimiters:[{left:'$',right:'$',display:false},{left:'$$',right:'$$',display:true}]}), 50);
+    setTimeout(() => renderMathInElement(document.getElementById('fig-title'), {delimiters:[{left:'$',right:'$',display:false}]}), 50);
+  }
+};
+
+// ── Input handling ─────────────────────────────────────────────────────────
+document.getElementById('sentence-input').addEventListener('input', e => {
+  const words = e.target.value.trim().split(/\s+/).filter(Boolean).slice(0,8);
+  if (words.length >= 2) { tokens = words; render(); }
+});
+document.querySelectorAll('.token-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('sentence-input').value = btn.dataset.s;
+    tokens = btn.dataset.s.split(' ');
+    render();
+  });
+});
+document.querySelectorAll('.step-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    step = btn.dataset.step;
+    document.querySelectorAll('.step-btn').forEach(b=>b.classList.toggle('active',b===btn));
+    render();
+  });
+});
+document.getElementById('temp').addEventListener('input', render);
+document.getElementById('scaled-chk').addEventListener('change', render);
+
+// ── Keyboard nav ──────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const steps = ['scores','scaled','weights','output'];
+  const idx = steps.indexOf(step);
+  if (e.key === 'ArrowRight' && idx < steps.length-1) {
+    step = steps[idx+1];
+    document.querySelectorAll('.step-btn').forEach(b=>b.classList.toggle('active',b.dataset.step===step));
+    render();
+  }
+  if (e.key === 'ArrowLeft' && idx > 0) {
+    step = steps[idx-1];
+    document.querySelectorAll('.step-btn').forEach(b=>b.classList.toggle('active',b.dataset.step===step));
+    render();
+  }
+  if (e.key === '?') {
+    alert('Shortcuts:\n← / → — step through math\nj / k — prev/next chapter\n/ — search (coming soon)\n? — this help');
+  }
+});
+
+// Defer first render until DOM + KaTeX are ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', render);
+} else {
+  render();
+}
+</script>
+</body></html>
