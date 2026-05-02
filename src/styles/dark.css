@@ -1,0 +1,110 @@
+/* =========================================================================
+   Attend — Dark mode token overrides
+   Applied when <html data-scheme="dark"> is set.
+   Uses the same variable names as colors_and_type.css so every component
+   automatically inherits the dark palette with zero component changes.
+   ========================================================================= */
+
+[data-scheme="dark"] {
+  /* ---- Paper + Ink flipped -------------------------------------------- */
+  --paper:         #1A1C22;   /* deep navy-black canvas                */
+  --paper-2:       #22252E;   /* slightly lighter for cards            */
+  --paper-3:       #2E3140;   /* rules, quiet borders                  */
+  --paper-edge:    #3D4257;   /* strong border                         */
+
+  --ink:           #EDE8DC;   /* warm near-white text                  */
+  --ink-2:         #C8C2B4;   /* body prose                            */
+  --ink-3:         #8E8A7A;   /* secondary / captions                  */
+  --ink-4:         #5E5C55;   /* tertiary / muted                      */
+  --ink-5:         #3A3933;   /* disabled                              */
+
+  /* ---- Q / K / V — slightly brighter on dark -------------------------- */
+  --query:         #E8601A;
+  --query-soft:    #3A1A0A;
+  --query-ink:     #F5A07A;
+
+  --key:           #15A88F;
+  --key-soft:      #0A2E28;
+  --key-ink:       #7DDECB;
+
+  --value:         #9B6FCC;
+  --value-soft:    #1E1030;
+  --value-ink:     #CAAEED;
+
+  /* ---- Heat — warm amber on dark -------------------------------------- */
+  --heat-0:        #1A1C22;
+  --heat-1:        #2A2010;
+  --heat-2:        #4A3318;
+  --heat-3:        #7A5020;
+  --heat-4:        #B87030;
+  --heat-5:        #E8A040;
+
+  /* ---- Status ---------------------------------------------------------- */
+  --ok:            #3FAD6A;
+  --ok-soft:       #0F2C1A;
+  --warn:          #D4960A;
+  --warn-soft:     #2C2200;
+  --err:           #C94040;
+  --err-soft:      #2C0C0C;
+  --info-soft:     var(--key-soft);
+
+  /* ---- Code block ------------------------------------------------------ */
+  --code-bg:       #0F1117;
+  --code-fg:       #E5E0D2;
+
+  /* ---- Shadows (stronger on dark) ------------------------------------- */
+  --shadow-1: 0 1px 0 rgba(0,0,0,0.2), 0 1px 4px rgba(0,0,0,0.3);
+  --shadow-2: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-3: 0 2px 0 rgba(0,0,0,0.2), 0 12px 40px rgba(0,0,0,0.5);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.3);
+}
+
+/* ---- Global background must follow the variable ----------------------- */
+[data-scheme="dark"] html,
+[data-scheme="dark"] body,
+html[data-scheme="dark"],
+body[data-scheme="dark"] {
+  background: var(--paper);
+  color: var(--ink-2);
+}
+
+/* ---- Selection on dark ------------------------------------------------ */
+[data-scheme="dark"] ::selection {
+  background: var(--heat-3);
+  color: var(--ink);
+}
+
+/* ---- Dark mode toggle button ------------------------------------------ */
+.dark-toggle {
+  appearance: none;
+  border: 1px solid var(--paper-3);
+  background: var(--paper-2);
+  border-radius: 999px;
+  width: 36px;
+  height: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: background 200ms, border-color 200ms;
+  flex-shrink: 0;
+}
+.dark-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  transition: transform 200ms, background 200ms;
+}
+[data-scheme="dark"] .dark-toggle::after {
+  transform: translateX(16px);
+  background: var(--key);
+}
+
+/* ---- Smooth scheme transition ---------------------------------------- */
+*, *::before, *::after {
+  transition: background-color 250ms ease, border-color 250ms ease, color 200ms ease;
+}
+/* But NOT transforms / opacity / width / height — those should stay instant */

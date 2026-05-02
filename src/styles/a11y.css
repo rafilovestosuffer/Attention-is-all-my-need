@@ -1,0 +1,58 @@
+/* =========================================================================
+   Attend — Accessibility + reduced-motion overrides
+   ========================================================================= */
+
+/* ---- Focus rings -------------------------------------------------------- */
+:focus-visible {
+  outline: 2.5px solid var(--query);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* Suppress focus ring on click (only show on keyboard nav) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ---- Skip link ---------------------------------------------------------- */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 16px;
+  z-index: 99999;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 16px;
+  border-radius: 0 0 6px 6px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 150ms;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ---- Reduced motion ----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Screen reader only ------------------------------------------------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
